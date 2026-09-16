@@ -41,7 +41,7 @@ export const PhotoAnalyzer = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-extrabold uppercase tracking-widest text-indigo-400">
-              HostBoost Vision AI
+              Trustora Vision AI
             </span>
             <Badge variant="cyan" size="sm">Neural Quality Radar</Badge>
           </div>

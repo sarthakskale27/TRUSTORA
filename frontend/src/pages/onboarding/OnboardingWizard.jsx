@@ -373,7 +373,7 @@ export const OnboardingWizard = ({ onComplete }) => {
             <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/20 flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
               <p className="text-xs text-indigo-200">
-                <strong>HostBoost Dynamic Pricing</strong> will automatically calculate seasonal multipliers, weekend surges, and local events starting from your base price.
+                <strong>Trustora Dynamic Pricing</strong> will automatically calculate seasonal multipliers, weekend surges, and local events starting from your base price.
               </p>
             </div>
           </div>
@@ -500,7 +500,7 @@ export const OnboardingWizard = ({ onComplete }) => {
             <div>
               <h2 className="text-2xl font-black text-white">Ready for Instant AI Launch!</h2>
               <p className="text-xs text-slate-400 mt-2 max-w-md mx-auto">
-                HostBoost will automatically generate your Trustora Trust Profile, configure 30-day dynamic pricing curves, and prepare your WhatsApp Concierge hospitality bot.
+                Trustora will automatically generate your Trustora Trust Profile, configure 30-day dynamic pricing curves, and prepare your WhatsApp Concierge hospitality bot.
               </p>
             </div>
 
@@ -558,7 +558,7 @@ export const OnboardingWizard = ({ onComplete }) => {
               onClick={handleSubmit}
               className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs font-bold shadow-xl shadow-indigo-600/30 transition-all disabled:opacity-50"
             >
-              {submitting ? 'Publishing Property...' : 'Launch Property on HostBoost'}
+              {submitting ? 'Publishing Property...' : 'Launch Property on Trustora'}
               <Sparkles className="w-4 h-4" />
             </button>
           )}

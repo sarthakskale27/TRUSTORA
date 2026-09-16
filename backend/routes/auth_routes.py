@@ -91,7 +91,7 @@ def forgot_password():
 @auth_bp.route('/google-mock', methods=['POST'])
 def google_mock():
     data = request.get_json() or {}
-    google_email = data.get('email', 'host@hostboost.ai')
+    google_email = data.get('email', 'host@trustora.ai')
     google_name  = data.get('name', 'Premium Host')
     role         = data.get('role', 'host')
     user = User.query.filter_by(email=google_email).first()

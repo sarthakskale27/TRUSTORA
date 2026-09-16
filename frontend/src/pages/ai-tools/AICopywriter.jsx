@@ -59,7 +59,7 @@ export const AICopywriter = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-extrabold uppercase tracking-widest text-indigo-400">
-              HostBoost Creative Suite
+              Trustora Creative Suite
             </span>
             <Badge variant="purple" size="sm">Multi-Tone SEO</Badge>
           </div>

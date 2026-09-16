@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.getenv('SECRET_KEY', 'hostboost-production-super-secret-key-2026')
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET', 'hostboost-jwt-secret-token-key-2026')
+    SECRET_KEY = os.getenv('SECRET_KEY', 'trustora-production-super-secret-key-2026')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET', 'trustora-jwt-secret-token-key-2026')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
     
     # Supabase / PostgreSQL Support with local SQLite fallback
@@ -18,7 +18,7 @@ class Config:
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
     else:
         # Local SQLite fallback
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hostboost.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'trustora.db')
         SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
         
     SQLALCHEMY_TRACK_MODIFICATIONS = False

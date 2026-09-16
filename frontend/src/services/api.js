@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // In production on Vercel, set VITE_API_URL in Vercel Environment Variables
-// Example: https://hostboost-backend.onrender.com/api
+// Example: https://trustora-backend.onrender.com/api
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
@@ -13,7 +13,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('hostboost_token');
+    const token = localStorage.getItem('trustora_token') || localStorage.getItem('hostboost_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

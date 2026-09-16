@@ -1,89 +1,57 @@
-# 🚀 HostBoost AI • Production SaaS Platform for Independent Hosts
-> **AI-Powered Property Management, Dynamic Pricing & Trustora Trust Intelligence Platform**
+# 🛡️ Trustora — Trust Intelligence Layer for Local Rentals
+
+> *“Don't just book what looks good. Book what you can trust.”*
+
+**Trustora** is a Trust Intelligence Layer for accommodation and local rental marketplaces (Geeks2Code Track). It evaluates rental listings across host authenticity, fraud risks, review manipulation, fair pricing, and neighborhood vibe.
 
 ---
 
-## 🌟 Overview & Purpose
-**HostBoost AI** is a commercial-grade, production-quality SaaS MVP built specifically for small and independent accommodation hosts (villas, boutique hotels, heritage homestays, apartments, and serviced chalets). It solves the biggest bottlenecks independent hosts face:
-1. **Dynamic Revenue Maximization**: 5-Factor automated pricing calendar (seasonality, day-of-week, local events, occupancy, and competitor benchmarks).
-2. **Trustora Trust Intelligence Layer**: Integrated from the **Geeks2Code Architecture** (Host identity validation, 0-100 Trust Score, review anomaly burst detection, and hyper-local neighborhood sentiment scoring).
-3. **Multi-Tone AI Copywriting**: High-converting SEO headlines, OTA descriptions, and social media hooks.
-4. **Photo Quality & Staging Diagnostics**: Computer vision checks for lighting, composition, clutter, and hero photo selection.
-5. **WhatsApp AI Guest Concierge**: 24/7 instant automated guest hospitality with simulated keyless entry, local guide recommendations, and policy handling.
-6. **Multi-Status Reservation & Financial Analytics**: Interactive Recharts dashboards for revenue tracking, occupancy yields, and channel breakdowns.
+## 🌟 5 Core Unique Features (Slide 4)
+
+1. **Verified Host**: ID/document upload with basic authenticity and face-match checks to generate an official Verified Host badge.
+2. **Scam & Fraud Detector**: Analyzes listing text, underpricing anomalies (>40% below market), reviews, and duplicate stock photos to flag fake or suspicious listings.
+3. **Review Anomaly Radar**: Detects unusual review velocity bursts (24-48h spikes), repetitive phrasing, and bot manipulation.
+4. **Neighbourhood Vibe**: Generates natural-language local summaries (*e.g. “Quiet area, 5 min from the beach, family-friendly”*) with safety and walkability scores.
+5. **Explainable Trust Score (0–100)**: Displays an auditable score detailing the exact positive signals and warning factors behind the score.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🚀 Quick Start
 
-`mermaid
-graph TD
-    A[React 18 + Vite + Tailwind CSS Frontend] -->|REST API + JWT Auth| B[Python Flask API Gateway]
-    B --> C[Authentication & Authorization Service]
-    B --> D[5-Factor Dynamic Pricing Engine]
-    B --> E[Trustora Trust & Review Anomaly Layer]
-    B --> F[AI Copywriting & Photo Vision Diagnostic]
-    B --> G[WhatsApp NLP Concierge Bot]
-    B --> H[Financial & Occupancy Analytics Engine]
-    B --> I[(Database Layer: Supabase PostgreSQL / Local SQLite Fallback)]
-`
-
-### Backend:
-- **Framework**: Python Flask REST API
-- **ORM & Database**: SQLAlchemy (16 relational models)
-- **Database Engine**: Fully configured for **Supabase PostgreSQL** (postgresql+psycopg://) with zero-config **SQLite** (sqlite:///hostboost.db) automatic fallback
-- **Authentication**: JWT & Flask-Bcrypt secure password hashing
-- **Seed Data**: 5 realistic luxury properties (Goa, Manali, Bangalore, Jaipur, Mumbai), 20 suites, 30 active bookings, 20 guests, review anomaly signatures, and notifications
-
-### Frontend:
-- **Framework**: React 18 (Vite, Rollup)
-- **Styling**: Tailwind CSS v3 with sleek modern SaaS dark theme
-- **Icons**: Lucide React
-- **Data Visualizations**: Recharts (Interactive AreaCharts, BarCharts, PieCharts)
-- **State & Notifications**: Context API (AuthContext + ToastContext with floating notifications)
-
----
-
-## 🔑 Preloaded Demo Credentials
-For instant zero-setup demonstration, use the **1-Click Demo Login** button or enter:
-- **Email**: host@hostboost.ai
-- **Password**: password123
-
----
-
-## ⚡ Quickstart Guide
-
-### 1. Start the Flask Backend
-`ash
+### 1. Backend (Flask + SQLite/Supabase PostgreSQL)
+```bash
 cd backend
-# Create and activate virtual environment (optional)
-# python -m venv venv && source venv/bin/activate (or venv\\Scripts\\activate on Windows)
+python -m venv venv
+venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 python app.py
-`
-*Backend runs on http://127.0.0.1:5000 and automatically self-seeds the database on first launch.*
+```
+*Backend runs on `http://localhost:5000`*
 
-### 2. Start the React Frontend
-`ash
+### 2. Frontend (React 19 + Vite + Tailwind CSS)
+```bash
 cd frontend
 npm install
 npm run dev
-`
-*Frontend runs on http://localhost:5173 with instant hot-module reload.*
+```
+*Frontend runs on `http://localhost:5173`*
 
 ---
 
-## 🗄️ Supabase PostgreSQL Setup (Optional)
-To connect your own remote Supabase PostgreSQL database:
-1. In ackend/.env, set:
-   `env
-   DATABASE_URL=postgresql+psycopg://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
-   `
-2. Or run the complete SQL script in ackend/supabase_schema.sql directly inside the **Supabase SQL Editor**.
+## ☁️ Deployment Guide
 
----
+### Deploying Frontend to Vercel
+1. Import repository to Vercel.
+2. Set Root Directory to `frontend`.
+3. Add Environment Variable:
+   - `VITE_API_URL`: `https://your-backend.onrender.com/api`
+4. Deploy!
 
-## 🛡️ Trustora Intelligence Highlights
-- **0-100 Trust Score Gauge**: Multi-dimensional verification (Identity, Review Legitimacy, Safety, Operational Uptime).
-- **Review Anomaly & Fraud Radar**: Continuous NLP scanning detecting sudden burst spikes or fake unverified review clusters.
-- **Neighborhood Vibe Index**: Real-time evaluation of transit connectivity, safety, walkability, and local ambiance.
+### Deploying Backend to Render / Railway with Supabase
+1. Create a PostgreSQL database on [Supabase.com](https://supabase.com).
+2. Set environment variables on Render:
+   - `DATABASE_URL`: `postgresql://postgres.[REF]:[PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`
+   - `SECRET_KEY`: `trustora-production-secret-2026`
+   - `JWT_SECRET`: `trustora-jwt-secret-2026`
+3. Build command: `pip install -r requirements.txt`
+4. Start command: `gunicorn app:app`

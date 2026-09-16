@@ -185,7 +185,7 @@ export const WhatsAppConcierge = () => {
                 </div>
                 <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  HostBoost AI Agent Online
+                  Trustora AI Agent Online
                 </p>
               </div>
             </div>
@@ -214,7 +214,7 @@ export const WhatsAppConcierge = () => {
                   <div className="flex items-center gap-1.5 mb-1">
                     {m.sender === 'ai' ? (
                       <span className="text-[10px] font-bold text-emerald-300 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> HostBoost Assistant
+                        <Sparkles className="w-3 h-3" /> Trustora Assistant
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold text-slate-400">{selectedGuest.name}</span>
@@ -233,7 +233,7 @@ export const WhatsAppConcierge = () => {
               <div className="flex justify-end">
                 <div className="bg-[#005c4b] text-emerald-200 text-xs px-4 py-2 rounded-2xl rounded-tr-none flex items-center gap-1.5 animate-pulse">
                   <Bot className="w-3.5 h-3.5 animate-spin" />
-                  <span>HostBoost is crafting instant answer...</span>
+                  <span>Trustora is crafting instant answer...</span>
                 </div>
               </div>
             )}

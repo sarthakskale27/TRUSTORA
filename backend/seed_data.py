@@ -192,8 +192,8 @@ def seed_database(app):
 
         # Demo accounts
         for email, name, role, verified in [
-            ('host@hostboost.ai',  'Rohan Mehta',  'host',  True),
-            ('guest@hostboost.ai', 'Priya Sharma', 'guest', False),
+            ('host@trustora.ai',  'Rohan Mehta',  'host',  True),
+            ('guest@trustora.ai', 'Priya Sharma', 'guest', False),
         ]:
             if not User.query.filter_by(email=email).first():
                 db.session.add(User(
@@ -202,7 +202,7 @@ def seed_database(app):
                     is_verified_host=verified, phone=rand_phone()
                 ))
         db.session.commit()
-        host_user = User.query.filter_by(email='host@hostboost.ai').first()
+        host_user = User.query.filter_by(email='host@trustora.ai').first()
 
         # Properties
         props_created = []
@@ -329,7 +329,7 @@ def seed_database(app):
                     'Airport pickup needed','Vegetarian meals only','Quiet room please']),
                 channel=random.choice(['direct','airbnb','booking.com','makemytrip','expedia','direct','direct']),
                 payment_status='paid' if status in ('confirmed','completed') else ('refunded' if status == 'cancelled' else 'pending'),
-                booking_reference=f'HB{random.randint(100000,999999)}',
+                booking_reference=f'TR{random.randint(100000,999999)}',
             )
             db.session.add(b)
             bookings_created.append(b)

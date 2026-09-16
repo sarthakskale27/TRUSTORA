@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+hostboost.db
+*.sqlite
+.env
+venv/
+.venv/
+uploads/

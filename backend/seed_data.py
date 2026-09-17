@@ -190,19 +190,30 @@ def seed_database(app):
 
         print("[seed] Starting expanded seed — 25 properties, 150 guests, 300+ bookings...")
 
-        # Demo accounts
-        for email, name, role, verified in [
-            ('host@trustora.ai',  'Rohan Mehta',  'host',  True),
-            ('guest@trustora.ai', 'Priya Sharma', 'guest', False),
-        ]:
+        # ── Demo accounts ────────────────────────────────────────────────────
+        DEMO_ACCOUNTS = [
+            # email,                    name,              role,    verified, password
+            ('host@trustora.ai',       'Rohan Mehta',     'host',  True,    'host123'),
+            ('guest@trustora.ai',      'Priya Sharma',    'guest', False,   'guest123'),
+            # Additional guest demo accounts for presentation
+            ('arjun@trustora.ai',      'Arjun Kapoor',    'guest', False,   'guest123'),
+            ('sneha@trustora.ai',      'Sneha Patel',     'guest', False,   'guest123'),
+            ('vikram@trustora.ai',     'Vikram Singh',    'guest', False,   'guest123'),
+            ('ananya@trustora.ai',     'Ananya Reddy',    'guest', False,   'guest123'),
+            # Restaurant / Cafe host demo
+            ('restaurant@trustora.ai', 'Deepa Nair',      'host',  True,    'restaurant123'),
+        ]
+        for email, name, role, verified, pwd in DEMO_ACCOUNTS:
             if not User.query.filter_by(email=email).first():
                 db.session.add(User(
                     name=name, email=email, role=role,
-                    password_hash=bcrypt.generate_password_hash('password123').decode('utf-8'),
+                    password_hash=bcrypt.generate_password_hash(pwd).decode('utf-8'),
                     is_verified_host=verified, phone=rand_phone()
                 ))
         db.session.commit()
-        host_user = User.query.filter_by(email='host@trustora.ai').first()
+        host_user        = User.query.filter_by(email='host@trustora.ai').first()
+        restaurant_user  = User.query.filter_by(email='restaurant@trustora.ai').first()
+
 
         # Properties
         props_created = []

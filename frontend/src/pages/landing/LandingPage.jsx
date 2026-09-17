@@ -186,7 +186,7 @@ export const LandingPage = ({ onGuestLogin, onHostLogin, onRegister }) => {
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-xs sm:text-sm font-semibold">
-            <a href="#features" className={t.navLink + ' transition-colors'}>Core Features (Slide 4)</a>
+            <a href="#features" className={t.navLink + ' transition-colors'}>Core Features</a>
             <a href="#destinations" className={t.navLink + ' transition-colors'}>Destinations</a>
             <a href="#how-it-works" className={t.navLink + ' transition-colors'}>Trust Intelligence Flow</a>
           </div>
@@ -220,7 +220,7 @@ export const LandingPage = ({ onGuestLogin, onHostLogin, onRegister }) => {
 
         {mobileMenu && (
           <div className={'md:hidden border-t ' + t.border + ' ' + t.navBg + ' px-4 py-4 space-y-3'}>
-            <a href="#features" onClick={() => setMobileMenu(false)} className={'block text-sm font-semibold ' + t.navLink}>Slide 4 Features</a>
+            <a href="#features" onClick={() => setMobileMenu(false)} className={'block text-sm font-semibold ' + t.navLink}>Core Features</a>
             <a href="#destinations" onClick={() => setMobileMenu(false)} className={'block text-sm font-semibold ' + t.navLink}>Destinations</a>
             <div className="flex gap-2 pt-2">
               <button onClick={() => { setMobileMenu(false); onGuestLogin(); }} className={'flex-1 py-2 rounded-xl border ' + t.border + ' text-sm font-bold ' + t.navLink}>Guest In</button>
@@ -391,14 +391,14 @@ export const LandingPage = ({ onGuestLogin, onHostLogin, onRegister }) => {
         </div>
       </section>
 
-      {/* ── 5 UNIQUE FEATURES (SLIDE 4 OF PPT) ── */}
+      {/* ── 5 CORE FEATURES ── */}
       <section id="features" className="py-20 max-w-7xl mx-auto px-4">
         <div className="text-center mb-14">
           <div className={'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3 ' + t.badge}>
-            <Sparkles className="w-3.5 h-3.5" /> PPT Slide 4 Core Specifications
+            <Sparkles className="w-3.5 h-3.5" /> Trust Intelligence Layer
           </div>
           <h2 className={'text-3xl sm:text-5xl font-black mb-4 ' + t.text}>
-            Trustora : 5 Unique Trust Features
+            Trustora's 5 Core Features
           </h2>
           <p className={'max-w-2xl mx-auto text-sm sm:text-base ' + t.textSub}>
             Evaluating rental listings across host authenticity, listing content, reviews, pricing, and neighbourhood context.
@@ -455,6 +455,86 @@ export const LandingPage = ({ onGuestLogin, onHostLogin, onRegister }) => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── TRUST INTELLIGENCE FLOW ── */}
+      <section id="how-it-works" className="py-20 max-w-7xl mx-auto px-4">
+        <div className="text-center mb-14">
+          <div className={'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3 ' + t.badge}>
+            <Cpu className="w-3.5 h-3.5" /> How It Works
+          </div>
+          <h2 className={'text-3xl sm:text-5xl font-black mb-4 ' + t.text}>
+            Trustora Intelligence Flow
+          </h2>
+          <p className={'max-w-2xl mx-auto text-sm sm:text-base ' + t.textSub}>
+            Every listing you view goes through a real-time 5-stage multi-signal verification pipeline before a Trust Score is issued.
+          </p>
+        </div>
+
+        {/* Flow Steps */}
+        <div className="relative">
+          {/* Connector line */}
+          <div className="hidden lg:block absolute top-14 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-emerald-500/20 via-emerald-500/60 to-emerald-500/20" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
+            {[
+              { step: '01', icon: Search,       color: 'emerald', title: 'Listing Ingested',      desc: 'Property URL or listing ID is submitted. Raw content, photos, and pricing are captured.' },
+              { step: '02', icon: Fingerprint,  color: 'teal',    title: 'Host ID Verified',      desc: 'Government ID, phone, and optional face-match verification is run against host profile.' },
+              { step: '03', icon: AlertTriangle,color: 'rose',    title: 'Fraud Radar Scan',       desc: 'AI detects duplicate photos, >40% underpricing, suspicious cross-platform copy-paste text.' },
+              { step: '04', icon: Zap,          color: 'amber',   title: 'Review Anomaly Check',  desc: 'NLP detects burst patterns, templated phrasing, sockpuppet accounts, fake positive clusters.' },
+              { step: '05', icon: ShieldCheck,  color: 'indigo',  title: 'Trust Score Issued',    desc: 'An auditable 0–100 score with plain-language breakdown is shown to the traveller.' },
+            ].map((s) => {
+              const Icon = s.icon;
+              const colors = {
+                emerald: { bg: 'bg-emerald-600', ring: 'border-emerald-500/40', glow: 'shadow-emerald-600/20', text: 'text-emerald-400' },
+                teal:    { bg: 'bg-teal-600',    ring: 'border-teal-500/40',    glow: 'shadow-teal-600/20',    text: 'text-teal-400'    },
+                rose:    { bg: 'bg-rose-600',    ring: 'border-rose-500/40',    glow: 'shadow-rose-600/20',    text: 'text-rose-400'    },
+                amber:   { bg: 'bg-amber-600',   ring: 'border-amber-500/40',   glow: 'shadow-amber-600/20',   text: 'text-amber-400'   },
+                indigo:  { bg: 'bg-indigo-600',  ring: 'border-indigo-500/40',  glow: 'shadow-indigo-600/20',  text: 'text-indigo-400'  },
+              }[s.color];
+              return (
+                <div key={s.step} className={'feature-card flex flex-col items-center text-center p-5 rounded-3xl border ' + colors.ring + ' ' + t.featureCard}>
+                  <div className={'w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl mb-3 ' + colors.bg + ' shadow-' + s.color + '-600/25'}>
+                    <Icon className="w-7 h-7" />
+                  </div>
+                  <span className={'text-[10px] font-black uppercase tracking-widest mb-1 ' + colors.text}>Step {s.step}</span>
+                  <h3 className={'font-black text-sm mb-2 ' + t.text}>{s.title}</h3>
+                  <p className={'text-[11px] leading-relaxed ' + t.textSub}>{s.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Trust Score result card */}
+        <div className="mt-12 p-6 rounded-3xl bg-gradient-to-r from-emerald-900/30 via-slate-900/60 to-teal-900/30 border border-emerald-500/30 flex flex-col md:flex-row items-center gap-6">
+          <div className="flex-shrink-0 w-24 h-24 rounded-full border-4 border-emerald-500/60 flex items-center justify-center bg-slate-900 shadow-2xl shadow-emerald-500/20">
+            <div className="text-center">
+              <p className="text-3xl font-black text-emerald-400 leading-none">96</p>
+              <p className="text-[9px] text-slate-400 font-semibold">/100</p>
+            </div>
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <p className="text-white font-black text-xl mb-1">Trustora Score: 96/100 — Highly Trusted</p>
+            <p className={'text-sm mb-3 ' + t.textSub}>Azure Beach Villa, Goa has passed all 5 verification stages. Here's what we found:</p>
+            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+              {[
+                { label: '✅ Host ID & Face-Match Verified', color: 'emerald' },
+                { label: '✅ Zero Duplicate Photos',          color: 'emerald' },
+                { label: '✅ Price Within Market Range',      color: 'emerald' },
+                { label: '✅ 0 Anomalous Reviews Detected',   color: 'emerald' },
+                { label: '✅ Neighbourhood: Family-Safe',     color: 'teal'    },
+              ].map(b => (
+                <span key={b.label} className={`text-[11px] px-2.5 py-1 rounded-full font-semibold bg-${b.color}-900/30 border border-${b.color}-500/30 text-${b.color}-300`}>
+                  {b.label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button onClick={onGuestLogin} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-emerald-600/20 shrink-0">
+            <Search className="w-4 h-4" /> Try Trustora Now
+          </button>
         </div>
       </section>
 

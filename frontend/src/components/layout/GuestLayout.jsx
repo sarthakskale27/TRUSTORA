@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard, MapPin, Search, Heart, Star,
   CalendarCheck, MessageSquare, User, ShieldCheck,
-  LogOut, Menu, X, Sparkles, Bell, Sun, Moon
+  LogOut, Menu, X, Sparkles, Bell, Sun, Moon, Scale
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -10,8 +10,8 @@ import { useTheme } from '../../context/ThemeContext';
 const navItems = [
   { id: 'guest-home',      label: 'Home & Explore',    icon: LayoutDashboard },
   { id: 'plan-trip',       label: 'Plan Safe Trip',    icon: Search,         badge: 'Trustora' },
+  { id: 'compare',         label: 'Compare Stays',     icon: Scale,          badge: 'New' },
   { id: 'near-me',         label: 'Near Me Search',    icon: MapPin,         badge: 'GPS' },
-  { id: 'browse',          label: 'Browse Verified',   icon: Search },
   { id: 'my-bookings',     label: 'My Bookings',       icon: CalendarCheck },
   { id: 'wishlist',        label: 'Saved Wishlist',    icon: Heart },
   { id: 'my-reviews',      label: 'My Reviews',        icon: Star },

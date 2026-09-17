@@ -23,48 +23,75 @@ import { TrustoraRadar }     from './pages/trust-radar/TrustoraRadar';
 import { Analytics }         from './pages/analytics/Analytics';
 
 // Guest portal
-import { GuestLayout }    from './components/layout/GuestLayout';
-import { GuestHome }      from './pages/guest/GuestHome';
-import { PlanTrip }       from './pages/guest/PlanTrip';
-import { NearMe }         from './pages/guest/NearMe';
-import { MyBookings }     from './pages/guest/MyBookings';
-import { Wishlist }       from './pages/guest/Wishlist';
-import { MyReviews }      from './pages/guest/MyReviews';
-import { GuestConcierge } from './pages/guest/GuestConcierge';
-import { GuestProfile }   from './pages/guest/GuestProfile';
+import { GuestLayout }       from './components/layout/GuestLayout';
+import { GuestHome }         from './pages/guest/GuestHome';
+import { PlanTrip }          from './pages/guest/PlanTrip';
+import { CompareProperties } from './pages/guest/CompareProperties';
+import { NearMe }            from './pages/guest/NearMe';
+import { MyBookings }        from './pages/guest/MyBookings';
+import { Wishlist }          from './pages/guest/Wishlist';
+import { MyReviews }         from './pages/guest/MyReviews';
+import { GuestConcierge }    from './pages/guest/GuestConcierge';
+import { GuestProfile }      from './pages/guest/GuestProfile';
 
 const Spinner = () => (
   <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
-    <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
+    <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
     <p className="text-xs text-slate-400 font-semibold tracking-wider uppercase">Loading Trustora Intelligence...</p>
   </div>
 );
 
 /* ── GUEST APP ── */
 const GuestApp = () => {
-  const [activeTab, setActiveTab] = useState('guest-home');
+  const [activeTab, setActiveTab]             = useState('guest-home');
+  const [selectedPropertyId, setSelId]       = useState(null);
+  const [comparePropertyIds, setCompareIds]   = useState([]);
+
+  const handleOpenCompare = (ids) => {
+    setCompareIds(ids);
+    setSelId(null);
+    setActiveTab('compare');
+  };
+
   const renderView = () => {
+    if (selectedPropertyId) {
+      return (
+        <PropertyDetail
+          propertyId={selectedPropertyId}
+          onBack={() => setSelId(null)}
+          onNavigateTab={(tab) => { setSelId(null); setActiveTab(tab); }}
+        />
+      );
+    }
+
     switch (activeTab) {
-      case 'guest-home':      return <GuestHome onNavigate={setActiveTab} />;
-      case 'plan-trip':       return <PlanTrip />;
-      case 'near-me':         return <NearMe />;
-      case 'browse':          return <PlanTrip />;
+      case 'guest-home':      return <GuestHome onNavigate={setActiveTab} onSelectProperty={setSelId} />;
+      case 'plan-trip':       return <PlanTrip onSelectProperty={setSelId} onCompare={handleOpenCompare} />;
+      case 'compare':         return <CompareProperties selectedIds={comparePropertyIds} onSelectProperty={setSelId} onNavigate={setActiveTab} />;
+      case 'near-me':         return <NearMe onSelectProperty={setSelId} />;
+      case 'browse':          return <PlanTrip onSelectProperty={setSelId} onCompare={handleOpenCompare} />;
       case 'my-bookings':     return <MyBookings />;
-      case 'wishlist':        return <Wishlist />;
+      case 'wishlist':        return <Wishlist onSelectProperty={setSelId} />;
       case 'my-reviews':      return <MyReviews />;
       case 'concierge-guest': return <GuestConcierge />;
       case 'guest-profile':   return <GuestProfile />;
       case 'guest-trust':     return <GuestProfile />;
-      default:                return <GuestHome onNavigate={setActiveTab} />;
+      default:                return <GuestHome onNavigate={setActiveTab} onSelectProperty={setSelId} />;
     }
   };
-  return <GuestLayout activeTab={activeTab} setActiveTab={setActiveTab}>{renderView()}</GuestLayout>;
+
+  return (
+    <GuestLayout activeTab={activeTab} setActiveTab={(tab) => { setSelId(null); setActiveTab(tab); }}>
+      {renderView()}
+    </GuestLayout>
+  );
 };
 
 /* ── HOST APP ── */
 const HostApp = () => {
   const [activeTab, setActiveTab]       = useState('dashboard');
   const [selectedPropertyId, setSelId] = useState(null);
+
   const renderView = () => {
     if (selectedPropertyId && activeTab === 'properties') {
       return <PropertyDetail propertyId={selectedPropertyId} onBack={() => setSelId(null)}
@@ -84,6 +111,7 @@ const HostApp = () => {
       default:               return <Dashboard onNavigate={setActiveTab} />;
     }
   };
+
   return (
     <Layout activeTab={activeTab} setActiveTab={(tab) => { setSelId(null); setActiveTab(tab); }}>
       {renderView()}
@@ -94,7 +122,6 @@ const HostApp = () => {
 /* ── ROOT ── */
 const AppContent = () => {
   const { user, loading } = useAuth();
-  // authView: null=landing, 'login', 'register'
   const [authView, setAuthView]       = useState(null);
   const [initialPortal, setInitPortal] = useState(null);
 
@@ -114,7 +141,6 @@ const AppContent = () => {
         onBack={() => setAuthView(null)}
       />;
     }
-    // Landing page
     return <LandingPage
       onGuestLogin={() => { setInitPortal('guest'); setAuthView('login'); }}
       onHostLogin={()  => { setInitPortal('host');  setAuthView('login'); }}

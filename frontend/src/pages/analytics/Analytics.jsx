@@ -18,7 +18,10 @@ import {
   MapPin,
   Sparkles,
   Layers,
-  ChevronDown
+  ChevronDown,
+  Globe,
+  MessageSquare,
+  Share2
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -36,12 +39,55 @@ import {
 import api from '../../services/api';
 import { Badge } from '../../components/common/Badge';
 
+export const renderChannelBadge = (channel) => {
+  const norm = (channel || '').toLowerCase();
+  if (norm.includes('airbnb')) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-[#FF385C]/15 text-[#FF385C] border border-[#FF385C]/30 shadow-sm">
+        <span className="w-2 h-2 rounded-full bg-[#FF385C] animate-pulse shrink-0" />
+        <span>Airbnb</span>
+      </span>
+    );
+  }
+  if (norm.includes('booking')) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-[#003580]/35 text-[#38bdf8] border border-[#003580]/70 shadow-sm">
+        <span className="w-3.5 h-3.5 rounded bg-[#003580] text-white flex items-center justify-center font-black text-[9px] leading-none shrink-0 border border-[#006CE4]">B.</span>
+        <span>Booking.com</span>
+      </span>
+    );
+  }
+  if (norm.includes('whatsapp')) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/30 shadow-sm">
+        <MessageSquare className="w-3 h-3 text-[#25D366] shrink-0" />
+        <span>WhatsApp</span>
+      </span>
+    );
+  }
+  if (norm.includes('trustora')) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-teal-500/15 text-teal-400 border border-teal-500/30 shadow-sm">
+        <ShieldCheck className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+        <span>Trustora Direct</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 shadow-sm">
+      <Globe className="w-3 h-3 text-indigo-400 shrink-0" />
+      <span>Direct Booking</span>
+    </span>
+  );
+};
+
 export const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [properties, setProperties] = useState([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [channelFilter, setChannelFilter] = useState('all');
 
   const fetchAnalytics = async (propertyId = null, isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -96,7 +142,13 @@ export const Analytics = () => {
   const selectedProp = analyticsData?.selected_property;
   const channelData = analyticsData?.channel_distribution || [];
   const revenueTrend = analyticsData?.revenue_trend || [];
-  const bookingsList = analyticsData?.bookings || [];
+  const allBookings = analyticsData?.bookings || [];
+
+  const filteredBookings = allBookings.filter((b) => {
+    if (channelFilter === 'all') return true;
+    const ch = (b.channel || '').toLowerCase();
+    return ch.includes(channelFilter.toLowerCase());
+  });
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto pb-16">
@@ -111,7 +163,7 @@ export const Analytics = () => {
           </div>
           <h1 className="text-2xl font-black text-white">Revenue & Occupancy Analytics</h1>
           <p className="text-xs text-slate-400">
-            Real-time financial yield, booking pace, and occupancy analytics strictly scoped to your selected property.
+            Real-time yields, channel origins (Airbnb, Booking.com, WhatsApp, Direct), and occupancy scoped strictly to this property.
           </p>
         </div>
 
@@ -260,7 +312,125 @@ export const Analytics = () => {
         </div>
       </div>
 
-      {/* ── 4. CHARTS SECTION (SCOPED REVENUE & CHANNELS) ── */}
+      {/* ── 4. CHANNEL ORIGIN SUMMARY CARDS (Airbnb, Booking.com, WhatsApp, Direct) ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Share2 className="w-3.5 h-3.5 text-indigo-400" /> Booking Channel Breakdown & Revenue Origin
+          </h3>
+          <span className="text-[11px] text-slate-500">Live Scoped Attribution</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Airbnb Card */}
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-[#FF385C]/30 hover:border-[#FF385C]/60 transition-all shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-extrabold text-[#FF385C] flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FF385C]" /> Airbnb
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FF385C]/10 text-[#FF385C]">
+                OTA
+              </span>
+            </div>
+            {(() => {
+              const ch = channelData.find(c => (c.name || '').toLowerCase().includes('airbnb'));
+              return (
+                <div>
+                  <p className="text-lg font-black text-white">
+                    ₹{ch ? ch.revenue.toLocaleString() : '0'}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {ch ? `${ch.bookings} reservations (${ch.value}%)` : '0 reservations'}
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Booking.com Card */}
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-[#003580]/60 hover:border-[#38bdf8]/60 transition-all shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-extrabold text-[#38bdf8] flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-[#003580] text-white flex items-center justify-center text-[8px] font-black">B.</span> Booking.com
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#003580]/40 text-[#38bdf8]">
+                OTA
+              </span>
+            </div>
+            {(() => {
+              const ch = channelData.find(c => (c.name || '').toLowerCase().includes('booking'));
+              return (
+                <div>
+                  <p className="text-lg font-black text-white">
+                    ₹{ch ? ch.revenue.toLocaleString() : '0'}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {ch ? `${ch.bookings} reservations (${ch.value}%)` : '0 reservations'}
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* WhatsApp Concierge Card */}
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-[#25D366]/30 hover:border-[#25D366]/60 transition-all shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-extrabold text-[#25D366] flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" /> WhatsApp Concierge
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#25D366]/10 text-[#25D366]">
+                AI Chat
+              </span>
+            </div>
+            {(() => {
+              const ch = channelData.find(c => (c.name || '').toLowerCase().includes('whatsapp'));
+              return (
+                <div>
+                  <p className="text-lg font-black text-white">
+                    ₹{ch ? ch.revenue.toLocaleString() : '0'}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {ch ? `${ch.bookings} reservations (${ch.value}%)` : '0 reservations'}
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Direct Website / Trustora Card */}
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-indigo-500/30 hover:border-indigo-500/60 transition-all shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-extrabold text-indigo-400 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-indigo-400" /> Direct Bookings
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300">
+                0% Commission
+              </span>
+            </div>
+            {(() => {
+              const chDirect = channelData.filter(c => {
+                const n = (c.name || '').toLowerCase();
+                return n.includes('direct') || n.includes('trustora');
+              });
+              const totRev = chDirect.reduce((acc, c) => acc + c.revenue, 0);
+              const totBookings = chDirect.reduce((acc, c) => acc + c.bookings, 0);
+              const totPct = chDirect.reduce((acc, c) => acc + c.value, 0);
+              return (
+                <div>
+                  <p className="text-lg font-black text-white">
+                    ₹{totRev.toLocaleString()}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {totBookings} reservations ({totPct}%)
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 5. CHARTS SECTION (SCOPED REVENUE & CHANNELS) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Monthly Revenue Yield Chart (8 cols) */}
         <div className="lg:col-span-8 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
@@ -284,7 +454,7 @@ export const Analytics = () => {
                 <YAxis stroke="#64748b" fontSize={11} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px', color: '#fff' }}
-                  formatter={(val, name) => [`₹${Number(val).toLocaleString()}`, 'Yield Revenue']}
+                  formatter={(val) => [`₹${Number(val).toLocaleString()}`, 'Yield Revenue']}
                   labelFormatter={(label) => `Month: ${label}`}
                 />
                 <Bar dataKey="revenue" fill="#6366f1" radius={[8, 8, 0, 0]} />
@@ -293,14 +463,14 @@ export const Analytics = () => {
           </div>
         </div>
 
-        {/* Channel Share (4 cols) */}
+        {/* Channel Share Donut Chart (4 cols) */}
         <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <PieIcon className="w-4 h-4 text-cyan-400" /> Channel Attribution
+                <PieIcon className="w-4 h-4 text-cyan-400" /> Channel Attribution Share
               </h3>
-              <Badge variant="purple" size="sm">OTA & Direct</Badge>
+              <Badge variant="purple" size="sm">% Share</Badge>
             </div>
 
             <div className="h-48 w-full pt-2">
@@ -322,7 +492,7 @@ export const Analytics = () => {
                   </Pie>
                   <Tooltip
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
-                    formatter={(val, name, item) => [`${val}% (${item.payload.bookings} bookings)`, item.payload.name]}
+                    formatter={(val, name, item) => [`${val}% (₹${item.payload.revenue?.toLocaleString()})`, item.payload.name]}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -336,25 +506,47 @@ export const Analytics = () => {
                   <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: c.color }} />
                   {c.name}
                 </span>
-                <span className="font-bold text-white">{c.value}% ({c.bookings} bookings)</span>
+                <span className="font-bold text-white">{c.value}% ({c.bookings} stays)</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── 5. REAL-TIME BOOKINGS LOG FOR THIS PROPERTY ── */}
+      {/* ── 6. REAL-TIME BOOKINGS LOG & CHANNEL ORIGIN ── */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800 gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800 gap-3">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Layers className="w-4 h-4 text-emerald-400" /> Verified Bookings Log for {selectedProp?.name || 'Selected Property'}
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Reflecting all {bookingsList.length} real-time verified guest reservations for this exact property.
+              Reflecting all {allBookings.length} real-time verified guest reservations for this exact property with origin channel.
             </p>
           </div>
-          <Badge variant="emerald" size="sm">{bookingsList.length} Total Bookings</Badge>
+
+          {/* Channel Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {[
+              { key: 'all', label: 'All Channels' },
+              { key: 'airbnb', label: 'Airbnb' },
+              { key: 'booking', label: 'Booking.com' },
+              { key: 'whatsapp', label: 'WhatsApp' },
+              { key: 'direct', label: 'Direct' }
+            ].map((chip) => (
+              <button
+                key={chip.key}
+                onClick={() => setChannelFilter(chip.key)}
+                className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  channelFilter === chip.key
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -362,17 +554,17 @@ export const Analytics = () => {
             <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider text-[10px] font-extrabold border-b border-slate-800">
               <tr>
                 <th className="py-3 px-4">Booking Ref</th>
-                <th className="py-3 px-4">Guest</th>
+                <th className="py-3 px-4">Guest Info</th>
+                <th className="py-3 px-4">Booking Source (Channel)</th>
                 <th className="py-3 px-4">Stay Dates</th>
                 <th className="py-3 px-4">Nights</th>
-                <th className="py-3 px-4">Channel</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Revenue (₹)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {bookingsList.length > 0 ? (
-                bookingsList.map((b) => (
+              {filteredBookings.length > 0 ? (
+                filteredBookings.map((b) => (
                   <tr key={b.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="py-3.5 px-4 font-mono font-bold text-indigo-400">
                       {b.booking_reference}
@@ -390,16 +582,14 @@ export const Analytics = () => {
                         </div>
                       </div>
                     </td>
+                    <td className="py-3.5 px-4">
+                      {renderChannelBadge(b.channel)}
+                    </td>
                     <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap">
                       {b.check_in} <span className="text-slate-500">→</span> {b.check_out}
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-slate-200">
                       {b.total_nights} {b.total_nights === 1 ? 'nt' : 'nts'} ({b.guest_count} {b.guest_count === 1 ? 'guest' : 'guests'})
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium text-[11px] border border-slate-700">
-                        {b.channel}
-                      </span>
                     </td>
                     <td className="py-3.5 px-4">
                       {getStatusBadge(b.status)}
@@ -412,7 +602,7 @@ export const Analytics = () => {
               ) : (
                 <tr>
                   <td colSpan="7" className="py-8 text-center text-slate-500">
-                    No bookings found for this property yet.
+                    No bookings found matching "{channelFilter}" channel filter.
                   </td>
                 </tr>
               )}

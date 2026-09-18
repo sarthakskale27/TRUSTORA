@@ -42,7 +42,6 @@ def get_dashboard_stats(current_user):
     if req_prop_id:
         selected_prop = next((p for p in properties if p.id == req_prop_id), None)
         if not selected_prop:
-            # Check if property exists in database
             selected_prop = Property.query.get(req_prop_id)
 
     if not selected_prop and properties:
@@ -73,7 +72,6 @@ def get_dashboard_stats(current_user):
     adr = round(total_revenue / max(1, total_nights)) if total_nights > 0 else round(selected_prop.base_price or 3500)
     
     # Calculate property-specific occupancy rate
-    # Based on 30-day rolling capacity or occupied nights
     raw_occ = (total_nights / 30.0) * 100
     occupancy_rate = round(min(94.0, max(58.0, raw_occ)), 1)
     revpar = round((total_revenue / 30.0), 2) if total_revenue > 0 else round(adr * (occupancy_rate / 100))
@@ -89,7 +87,6 @@ def get_dashboard_stats(current_user):
         month_revenue[key] += b.total_amount
         month_bookings[key] += 1
 
-    # Last 6 calendar months in order
     month_labels = []
     for i in range(5, -1, -1):
         dt = today.replace(day=1) - timedelta(days=i * 28)
@@ -98,7 +95,6 @@ def get_dashboard_stats(current_user):
     revenue_trend = []
     for m in month_labels:
         rev_m = round(month_revenue.get(m, 0))
-        # Ensure smooth visual presentation if new month
         if rev_m == 0 and len(active_bookings) > 0:
             rev_m = round(selected_prop.base_price * 2.5)
         
@@ -114,18 +110,16 @@ def get_dashboard_stats(current_user):
     channel_counts = defaultdict(int)
     channel_revenue = defaultdict(float)
     
-    channel_colors = {
-        'Direct Website': '#6366f1',
-        'Trustora Direct': '#10b981',
-        'Airbnb': '#06b6d4',
-        'Booking.com': '#f59e0b',
-        'WhatsApp Concierge': '#ec4899',
-        'Expedia': '#8b5cf6',
-        'MakeMyTrip': '#3b82f6'
+    channel_meta = {
+        'Airbnb': {'color': '#FF385C', 'icon': 'airbnb', 'label': 'Airbnb'},
+        'Booking.com': {'color': '#003580', 'icon': 'booking', 'label': 'Booking.com'},
+        'WhatsApp Concierge': {'color': '#25D366', 'icon': 'whatsapp', 'label': 'WhatsApp Concierge'},
+        'Direct Booking': {'color': '#6366f1', 'icon': 'direct', 'label': 'Direct Booking'},
+        'Trustora Direct': {'color': '#0d9488', 'icon': 'trustora', 'label': 'Trustora Direct'},
     }
 
     for b in bookings:
-        ch = b.channel or 'Direct Website'
+        ch = b.channel or 'Direct Booking'
         channel_counts[ch] += 1
         if b.status != 'cancelled':
             channel_revenue[ch] += b.total_amount
@@ -134,21 +128,16 @@ def get_dashboard_stats(current_user):
     channel_distribution = []
     for ch, count in channel_counts.items():
         pct = round((count / total_b_count) * 100)
+        meta = channel_meta.get(ch, {'color': '#94a3b8', 'icon': 'direct', 'label': ch})
         channel_distribution.append({
             'name': ch,
+            'label': meta['label'],
             'value': pct,
             'bookings': count,
             'revenue': round(channel_revenue.get(ch, 0)),
-            'color': channel_colors.get(ch, '#94a3b8')
+            'color': meta['color'],
+            'icon': meta['icon']
         })
-
-    if not channel_distribution:
-        channel_distribution = [
-            {'name': 'Trustora Direct', 'value': 50, 'bookings': 4, 'revenue': total_revenue * 0.5, 'color': '#10b981'},
-            {'name': 'Airbnb', 'value': 25, 'bookings': 2, 'revenue': total_revenue * 0.25, 'color': '#06b6d4'},
-            {'name': 'Booking.com', 'value': 15, 'bookings': 1, 'revenue': total_revenue * 0.15, 'color': '#f59e0b'},
-            {'name': 'WhatsApp Concierge', 'value': 10, 'bookings': 1, 'revenue': total_revenue * 0.1, 'color': '#ec4899'},
-        ]
 
     # Detailed bookings list for this property
     formatted_bookings = []
@@ -166,7 +155,7 @@ def get_dashboard_stats(current_user):
             'total_amount': b.total_amount,
             'status': b.status,
             'payment_status': b.payment_status,
-            'channel': b.channel or 'Direct Website',
+            'channel': b.channel or 'Direct Booking',
             'created_at': b.created_at.strftime('%Y-%m-%d %H:%M') if b.created_at else ''
         })
 

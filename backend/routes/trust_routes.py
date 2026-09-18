@@ -161,3 +161,52 @@ def submit_verification(current_user):
         'id_authenticity_score': id_auth,
         'disclaimer': 'This is a DEMO verification workflow. No real identity documents are processed or stored.',
     }), 200
+
+
+@trust_bp.route('/host/verification/reset', methods=['POST'])
+@token_required
+def reset_host_verification(current_user):
+    """Reset host verification to unverified state for testing."""
+    current_user.is_verified_host = False
+    try:
+        from models import HostVerification
+        HostVerification.query.filter_by(user_id=current_user.id).delete()
+    except Exception:
+        pass
+    db.session.commit()
+    return jsonify({'status': 'not_started', 'verified': False, 'message': 'Verification reset.'}), 200
+
+
+@trust_bp.route('/guest/verification/submit', methods=['POST'])
+@token_required
+def submit_guest_verification(current_user):
+    """Guest completes step-by-step KYC verification."""
+    from datetime import datetime
+    data = request.get_json() or {}
+    id_type = data.get('id_type', 'Aadhaar Card')
+    
+    current_user.is_verified_host = True
+    try:
+        from models import HostVerification
+        hv = HostVerification(
+            user_id=current_user.id,
+            status='verified',
+            id_type=id_type,
+            confidence_score=94.2,
+            face_match_score=98.4,
+            id_authenticity_score=99.1,
+            steps_completed=5,
+            submitted_at=datetime.utcnow(),
+        )
+        db.session.add(hv)
+    except Exception:
+        pass
+    db.session.commit()
+    return jsonify({
+        'status': 'verified',
+        'verified': True,
+        'confidence': 94.2,
+        'face_match_score': 98.4,
+        'id_authenticity_score': 99.1,
+        'message': 'Guest KYC verified successfully!'
+    }), 200

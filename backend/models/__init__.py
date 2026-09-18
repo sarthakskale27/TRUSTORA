@@ -474,3 +474,59 @@ class ChatMessage(db.Model):
             'timestamp': self.timestamp.strftime('%H:%M • %d %b') if self.timestamp else None,
             'is_read': self.is_read
         }
+
+
+class HostVerification(db.Model):
+    """Host identity verification workflow record."""
+    __tablename__ = 'host_verifications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    status = db.Column(db.String(30), default='not_started')  # not_started / pending / verified / needs_review / rejected
+    id_type = db.Column(db.String(50), nullable=True)
+    confidence_score = db.Column(db.Float, default=0.0)
+    face_match_score = db.Column(db.Float, default=0.0)
+    id_authenticity_score = db.Column(db.Float, default=0.0)
+    steps_completed = db.Column(db.Integer, default=0)
+    submitted_at = db.Column(db.DateTime, nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewer_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'status': self.status,
+            'id_type': self.id_type,
+            'confidence_score': self.confidence_score,
+            'face_match_score': self.face_match_score,
+            'id_authenticity_score': self.id_authenticity_score,
+            'steps_completed': self.steps_completed,
+            'submitted_at': self.submitted_at.isoformat() if self.submitted_at else None,
+        }
+
+
+class ListingReport(db.Model):
+    """Guest-submitted listing report."""
+    __tablename__ = 'listing_reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id', ondelete='CASCADE'), nullable=False, index=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    reason = db.Column(db.String(100), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(30), default='submitted')  # submitted / under_review / investigating / resolved
+    admin_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'property_id': self.property_id,
+            'reason': self.reason,
+            'details': self.details,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

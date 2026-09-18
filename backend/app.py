@@ -16,6 +16,7 @@ from routes.chat_routes import chat_bp
 from routes.analytics_routes import analytics_bp
 from routes.notification_routes import notification_bp
 from routes.guest_routes import guest_bp
+from routes.trust_routes import trust_bp
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -37,6 +38,7 @@ def create_app(config_class=Config):
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
     app.register_blueprint(notification_bp, url_prefix='/api/notifications')
     app.register_blueprint(guest_bp, url_prefix='/api/guest')
+    app.register_blueprint(trust_bp, url_prefix='/api/trust')
 
     @app.route('/api/health', methods=['GET'])
     def health_check():

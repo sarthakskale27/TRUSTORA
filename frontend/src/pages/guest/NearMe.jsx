@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MapPin, Loader2, Star, Heart, Navigation, Wifi, AlertCircle,
-  Shield, SlidersHorizontal, ExternalLink, Bed, Users, ChevronDown
+  Shield, SlidersHorizontal, ExternalLink, Bed, Users, ChevronDown,
+  Sparkles, CheckCircle2, Globe, ShieldCheck
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -14,45 +15,52 @@ const SORT_OPTIONS = [
   { value: 'trust', label: 'Trust Score' },
 ];
 
+const PRESET_LOCATIONS = [
+  { label: 'Current GPS', lat: null, lng: null, isGps: true },
+  { label: 'Pune', lat: 18.5204, lng: 73.8567 },
+  { label: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+  { label: 'Goa', lat: 15.4989, lng: 73.8278 },
+  { label: 'Bangalore', lat: 12.9716, lng: 77.5946 },
+  { label: 'Jaipur', lat: 26.9124, lng: 75.7873 },
+  { label: 'Udaipur', lat: 24.5854, lng: 73.7125 },
+  { label: 'Kerala', lat: 9.4981, lng: 76.3388 },
+  { label: 'Manali', lat: 32.2432, lng: 77.1892 },
+  { label: 'Delhi', lat: 28.6139, lng: 77.2090 },
+];
+
 const CITY_IMAGES = {
-  goa: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=400',
-  manali: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-  jaipur: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=400',
-  kerala: 'https://images.unsplash.com/photo-1601001435957-74f9e52d4e3b?w=400',
-  udaipur: 'https://images.unsplash.com/photo-1557174949-3de3d4f1da33?w=400',
-  mumbai: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?w=400',
-  bangalore: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?w=400',
-  rishikesh: 'https://images.unsplash.com/photo-1545156521-77bd85671d30?w=400',
+  goa: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800',
+  manali: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800',
+  jaipur: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800',
+  kerala: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?w=800',
+  alleppey: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?w=800',
+  udaipur: 'https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?w=800',
+  mumbai: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?w=800',
+  pune: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800',
+  bangalore: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?w=800',
+  rishikesh: 'https://images.unsplash.com/photo-1545156521-77bd85671d30?w=800',
 };
+
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800';
 
 function getPropertyImage(prop) {
   if (prop.photos?.length > 0 && prop.photos[0]?.url) return prop.photos[0].url;
-  if (prop.primary_image) return prop.primary_image;
+  if (prop.primary_image && prop.primary_image.startsWith('http')) return prop.primary_image;
   const cityKey = (prop.city || '').toLowerCase().split(' ')[0];
-  return CITY_IMAGES[cityKey] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400';
+  return CITY_IMAGES[cityKey] || DEFAULT_IMAGE;
 }
 
-function TrustBadge({ score }) {
-  const color = score >= 90 ? 'emerald' : score >= 75 ? 'amber' : 'rose';
-  const bg = { emerald: 'bg-emerald-900/30 border-emerald-500/40 text-emerald-400', amber: 'bg-amber-900/30 border-amber-500/40 text-amber-400', rose: 'bg-rose-900/30 border-rose-500/40 text-rose-400' }[color];
-  return (
-    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${bg}`}>
-      <Shield className="w-2.5 h-2.5" /> {score}
-    </div>
-  );
-}
-
-export const NearMe = ({ onPropertySelect }) => {
-  const [loading, setLoading]     = useState(false);
-  const [results, setResults]     = useState([]);
-  const [filtered, setFiltered]   = useState([]);
-  const [error, setError]         = useState('');
-  const [location, setLocation]   = useState(null);
-  const [radius, setRadius]       = useState(100);
-  const [wishlist, setWishlist]   = useState(new Set());
+export const NearMe = ({ onSelectProperty }) => {
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [error, setError] = useState('');
+  const [locationName, setLocationName] = useState('Detecting location...');
+  const [currentCoords, setCurrentCoords] = useState(null);
+  const [radius, setRadius] = useState(100);
+  const [wishlist, setWishlist] = useState(new Set());
   const [typeFilter, setTypeFilter] = useState('All');
-  const [sortBy, setSortBy]       = useState('distance');
-  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState('distance');
 
   const applyFiltersAndSort = (data, type, sort) => {
     let arr = [...data];
@@ -65,164 +73,286 @@ export const NearMe = ({ onPropertySelect }) => {
     setFiltered(arr);
   };
 
-  const findNear = () => {
+  const fetchNearby = async (lat, lng, r, name = '') => {
+    setLoading(true);
     setError('');
-    if (!navigator.geolocation) { setError('Geolocation is not supported by your browser.'); return; }
+    setCurrentCoords({ lat, lng });
+    if (name) setLocationName(name);
+
+    try {
+      const res = await api.get(`/guest/properties/near-me?lat=${lat}&lng=${lng}&radius_km=${r}`);
+      const data = res.data.properties || [];
+      setResults(data);
+      applyFiltersAndSort(data, typeFilter, sortBy);
+      if (data.length === 0) {
+        setError(`No properties found strictly within ${r} km of your location. Try expanding the radius slider to 250 km or 500 km.`);
+      }
+    } catch {
+      setError('Could not fetch nearby properties. Please verify backend connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const detectGps = () => {
+    setError('');
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser. Please select a city above.');
+      return;
+    }
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        setLocation({ lat, lng });
-        try {
-          const res = await api.get(`/guest/properties/near-me?lat=${lat}&lng=${lng}&radius_km=${radius}`);
-          const data = res.data.properties || [];
-          setResults(data);
-          applyFiltersAndSort(data, typeFilter, sortBy);
-        } catch {
-          setError('Could not fetch nearby properties. Is the backend running?');
-        } finally { setLoading(false); }
+        setLocationName(`Detected GPS (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`);
+        fetchNearby(lat, lng, radius, `Detected GPS (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`);
       },
-      () => { setLoading(false); setError('Location access denied. Please allow location access in your browser.'); }
+      (err) => {
+        setLoading(false);
+        // Fallback default location (Pune / Central West India)
+        setLocationName('Pune (Default Location)');
+        fetchNearby(18.5204, 73.8567, radius, 'Pune (Location access denied - showing Pune)');
+        setError('Location access was denied in your browser. Showing properties near Pune — or pick a city above.');
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
+  };
+
+  useEffect(() => {
+    detectGps();
+  }, []);
+
+  const handleRadiusChange = (newRadius) => {
+    setRadius(newRadius);
+    if (currentCoords) {
+      fetchNearby(currentCoords.lat, currentCoords.lng, newRadius, locationName);
+    }
+  };
+
+  const handleSelectPreset = (preset) => {
+    if (preset.isGps) {
+      detectGps();
+    } else {
+      fetchNearby(preset.lat, preset.lng, radius, `${preset.label} (${preset.lat}°, ${preset.lng}°)`);
+    }
   };
 
   const handleTypeChange = (t) => { setTypeFilter(t); applyFiltersAndSort(results, t, sortBy); };
   const handleSortChange = (s) => { setSortBy(s); applyFiltersAndSort(results, typeFilter, s); };
   const toggleWishlist = (id) => setWishlist(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const openGoogleMaps = (prop) => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(prop.address || prop.city)}`, '_blank');
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-emerald-400" /> Properties Near Me
-        </h1>
-        <p className="text-slate-400 text-sm mt-1">GPS-powered discovery of Trustora-verified stays near your location</p>
-      </div>
-
-      {/* Search controls */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div className="flex items-end gap-4">
-          <div className="flex-1">
-            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Search Radius</label>
-            <select value={radius} onChange={e => setRadius(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-              {[10, 25, 50, 100, 200, 500].map(r => <option key={r} value={r}>{r} km</option>)}
-            </select>
+    <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-12">
+      {/* Top Header Banner */}
+      <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+              <Navigation className="w-4 h-4" /> Haversine Distance Filter
+            </span>
+            <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+              STRICT RADIUS
+            </span>
           </div>
-          <button onClick={() => setShowFilters(v => !v)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-slate-300 hover:text-white text-sm font-semibold transition">
-            <SlidersHorizontal className="w-4 h-4" /> Filters <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-          </button>
-          <button onClick={findNear} disabled={loading} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-white font-bold text-sm hover:opacity-90 transition shadow-lg">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-            {loading ? 'Locating...' : 'Find Near Me'}
-          </button>
+          <h1 className="text-2xl font-black text-white">Properties Near Me</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Currently searching around: <strong className="text-emerald-400">{locationName}</strong>
+          </p>
         </div>
 
-        {showFilters && results.length > 0 && (
-          <div className="pt-4 border-t border-slate-800 space-y-3">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 mb-2">Property Type</p>
-              <div className="flex flex-wrap gap-2">
-                {TYPE_FILTERS.map(t => (
-                  <button key={t} onClick={() => handleTypeChange(t)} className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${typeFilter === t ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-600'}`}>{t}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400 mb-2">Sort By</p>
-              <div className="flex flex-wrap gap-2">
-                {SORT_OPTIONS.map(s => (
-                  <button key={s.value} onClick={() => handleSortChange(s.value)} className={`px-3 py-1 rounded-lg text-xs font-semibold border transition ${sortBy === s.value ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-600'}`}>{s.label}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        <button
+          onClick={detectGps}
+          disabled={loading}
+          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white font-bold text-xs shadow flex items-center gap-2 cursor-pointer shrink-0 transition-all"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+          Re-Detect GPS Location
+        </button>
+      </div>
 
-        {location && (
-          <p className="text-xs text-slate-500 flex items-center gap-1.5">
-            <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-            Location: {location.lat.toFixed(4)}&#xB0;N, {location.lng.toFixed(4)}&#xB0;E
-          </p>
-        )}
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-900/20 border border-rose-500/30 text-rose-400 text-xs">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
+      {/* Location Selector Chips */}
+      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Select Exact Location or City:
+          </span>
+          <span className="text-[10px] text-slate-500">Real geocoordinates</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {PRESET_LOCATIONS.map((preset) => {
+            const isSel = locationName.includes(preset.label);
+            return (
+              <button
+                key={preset.label}
+                onClick={() => handleSelectPreset(preset)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isSel
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                {preset.isGps ? '📍 ' : ''}{preset.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Radius & Filter Controls */}
+      <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-300">Search Radius:</span>
+            <div className="flex items-center gap-1.5">
+              {[25, 50, 100, 250, 500].map(r => (
+                <button
+                  key={r}
+                  onClick={() => handleRadiusChange(r)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    radius === r
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {r} km
+                </button>
+              ))}
+            </div>
           </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <select
+              value={typeFilter}
+              onChange={e => handleTypeChange(e.target.value)}
+              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+            >
+              {TYPE_FILTERS.map(t => <option key={t} value={t}>{t === 'All' ? 'All Property Types' : t}</option>)}
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={e => handleSortChange(e.target.value)}
+              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+            >
+              {SORT_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-black text-white flex items-center gap-2">
+          <span>Found {filtered.length} Properties strictly within {radius} km</span>
+        </h2>
+        {filtered.length > 0 && (
+          <span className="text-xs text-emerald-400 font-bold">
+            Nearest: {filtered[0]?.distance_km} km away ({filtered[0]?.city})
+          </span>
         )}
       </div>
 
-      {/* Results */}
-      {filtered.length > 0 && (
-        <div>
-          <p className="text-slate-400 text-sm mb-4">
-            <span className="text-white font-bold">{filtered.length}</span> properties found within {radius} km
-            {typeFilter !== 'All' && <span className="text-emerald-400"> &bull; {typeFilter}</span>}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filtered.map(prop => (
-              <div key={prop.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-slate-700 transition-all group flex flex-col">
-                {/* Image */}
-                <div className="relative h-44 overflow-hidden flex-shrink-0">
-                  <img
-                    src={getPropertyImage(prop)}
-                    alt={prop.name}
-                    onError={e => { e.target.src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400'; }}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                    <TrustBadge score={prop.trust_score || 88} />
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-300 font-semibold capitalize">{prop.property_type || 'Property'}</span>
-                  </div>
-                  <button onClick={() => toggleWishlist(prop.id)} className={`absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/60 backdrop-blur ${wishlist.has(prop.id) ? 'text-rose-400' : 'text-slate-400 hover:text-rose-400'}`}>
-                    <Heart className="w-4 h-4" fill={wishlist.has(prop.id) ? 'currentColor' : 'none'} />
-                  </button>
-                  <div className="absolute bottom-2 right-2 bg-slate-900/80 px-2 py-0.5 rounded-lg text-white font-extrabold text-sm">
-                    &#8377;{(prop.base_price || 5000).toLocaleString()}<span className="text-slate-400 text-[10px] font-normal">/night</span>
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="p-3 flex flex-col gap-2 flex-1">
-                  <div>
-                    <p className="text-white font-bold text-sm line-clamp-1">{prop.title || prop.name}</p>
-                    <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3" /> {prop.city}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1"><Bed className="w-3 h-3" />{prop.total_rooms || 2} rooms</span>
-                    <span className="flex items-center gap-1"><Users className="w-3 h-3" />{prop.max_guests || 4} guests</span>
-                    <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{prop.avg_rating || '4.8'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-auto pt-2 border-t border-slate-800">
-                    <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
-                      <Navigation className="w-3 h-3" /> {prop.distance_km} km away
-                    </span>
-                    <div className="flex gap-2 ml-auto">
-                      <button onClick={() => openGoogleMaps(prop)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-[11px] font-semibold transition">
-                        <ExternalLink className="w-3 h-3" /> Maps
-                      </button>
-                      <button onClick={() => onPropertySelect && onPropertySelect(prop.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition">
-                        View
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Error / Empty State Notice */}
+      {error && (
+        <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-300 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Empty state before search */}
-      {results.length === 0 && !loading && !error && (
-        <div className="text-center py-16 text-slate-600">
-          <MapPin className="w-14 h-14 mx-auto mb-3 opacity-20" />
-          <p className="text-slate-400 font-semibold">Click "Find Near Me" to discover properties</p>
-          <p className="text-sm mt-1 text-slate-600">We'll use your GPS to find Trustora-verified stays near you</p>
+      {/* Grid of Results */}
+      {loading ? (
+        <div className="min-h-[250px] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="p-12 text-center bg-slate-900/60 border border-slate-800 rounded-3xl text-slate-400 text-xs space-y-3">
+          <p>No verified properties within {radius} km of selected coordinates.</p>
+          <div className="flex justify-center gap-2">
+            <button onClick={() => handleRadiusChange(250)} className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs">
+              Expand Search to 250 km
+            </button>
+            <button onClick={() => handleRadiusChange(500)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">
+              Expand Search to 500 km
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map(prop => {
+            const imgSrc = getPropertyImage(prop);
+            const isWish = wishlist.has(prop.id);
+            return (
+              <div
+                key={prop.id}
+                onClick={() => onSelectProperty && onSelectProperty(prop.id)}
+                className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden hover:border-emerald-500/50 transition-all group cursor-pointer flex flex-col justify-between shadow-xl"
+              >
+                <div>
+                  <div className="relative h-48 bg-slate-800 overflow-hidden">
+                    <img
+                      src={imgSrc}
+                      alt={prop.name}
+                      onError={e => { e.target.onerror = null; e.target.src = DEFAULT_IMAGE; }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
+
+                    {/* Distance Badge */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-600/90 text-white font-black flex items-center gap-1 shadow backdrop-blur">
+                        <Navigation className="w-3 h-3" /> {prop.distance_km} km away
+                      </span>
+                    </div>
+
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                      <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white font-bold backdrop-blur">
+                        🛡️ {prop.trust_score || 94}/100
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleWishlist(prop.id); }}
+                        className={`p-1.5 rounded-full backdrop-blur transition-all ${
+                          isWish ? 'bg-rose-600 text-white' : 'bg-black/60 text-slate-300 hover:text-rose-400'
+                        }`}
+                      >
+                        <Heart className="w-3.5 h-3.5" fill={isWish ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+
+                    <div className="absolute bottom-2.5 left-3 right-3 text-[10px] text-emerald-300 truncate">
+                      📍 {prop.neighborhood_vibe || 'Verified location near transport & amenities.'}
+                    </div>
+                  </div>
+
+                  <div className="p-4 space-y-2">
+                    <h3 className="text-sm font-bold text-white truncate">{prop.name || prop.title}</h3>
+                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-rose-400 shrink-0" /> {prop.city}, {prop.state}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                      <div className="flex items-center gap-1 text-amber-400">
+                        <Star className="w-3.5 h-3.5 fill-amber-400" />
+                        <span className="text-white font-bold">{prop.avg_rating || '4.9'}</span>
+                        <span className="text-slate-500 text-[10px]">({prop.review_count || 14})</span>
+                      </div>
+                      <p className="text-emerald-400 font-extrabold text-sm">
+                        ₹{(prop.base_price || 5000).toLocaleString()}
+                        <span className="text-slate-500 font-normal text-[10px]">/night</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 pt-0">
+                  <button className="w-full py-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-xs font-bold transition-all">
+                    View Trust Profile →
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

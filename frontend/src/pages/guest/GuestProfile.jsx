@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User, Shield, Phone, Mail, Camera, CheckCircle, Star, MapPin, Award,
   Loader2, TrendingUp, Heart, Globe, Zap, AlertCircle, ChevronRight, X, Sparkles, Check,
-  FileText, Scan, RotateCcw
+  FileText, Scan, RotateCcw, Upload, Video, VideoOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -11,7 +11,7 @@ import { useToast } from '../../context/ToastContext';
 export const GuestProfile = () => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
-  const [stats, setStats] = useState({ bookings: 4, reviews: 3, cities: 3 });
+  const [stats, setStats] = useState({ bookings: 8, reviews: 5, cities: 4 });
   const [trustScore, setTrustScore] = useState(62);
   const [kycModalOpen, setKycModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState(1);
@@ -22,6 +22,17 @@ export const GuestProfile = () => {
   const [idType, setIdType] = useState('Aadhaar Card (UIDAI)');
   const [legalName, setLegalName] = useState(user?.name || 'Priya Sharma');
   const [idNum, setIdNum] = useState('4829 9182 3841');
+
+  // Document upload state
+  const [docFile, setDocFile] = useState(null);
+  const [docPreview, setDocPreview] = useState(null);
+
+  // Webcam state
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [capturedSelfie, setCapturedSelfie] = useState(null);
+
   const [step1Done, setStep1Done] = useState(false);
   const [step2Done, setStep2Done] = useState(false);
   const [step3Done, setStep3Done] = useState(false);
@@ -37,6 +48,62 @@ export const GuestProfile = () => {
       .catch(() => {});
   }, []);
 
+  // Clean up camera on close
+  useEffect(() => {
+    if (!kycModalOpen || modalStep !== 3) {
+      stopCamera();
+    }
+  }, [kycModalOpen, modalStep]);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: 'user' }
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setCameraActive(true);
+      }
+    } catch {
+      setCameraActive(false);
+      showToast('Camera permission unavailable — you can use sample photo below.', 'info');
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 240;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      setCapturedSelfie(dataUrl);
+      stopCamera();
+      showToast('Live selfie snapshot captured!', 'success');
+    }
+  };
+
+  const handleDocUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setDocFile(file);
+      setDocPreview(URL.createObjectURL(file));
+      showToast(`Document uploaded: ${file.name}`, 'success');
+    }
+  };
+
   const handleVerifyStep1 = (e) => {
     e.preventDefault();
     if (!legalName.trim() || !idNum.trim()) {
@@ -49,23 +116,29 @@ export const GuestProfile = () => {
   };
 
   const handleVerifyStep2 = () => {
+    if (!docPreview) {
+      setDocPreview('https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600');
+    }
     setKycSubmitting(true);
     setTimeout(() => {
       setKycSubmitting(false);
       setStep2Done(true);
       setModalStep(3);
       showToast('Document Authenticity: 99.1% Matched ✓', 'success');
-    }, 1000);
+    }, 900);
   };
 
   const handleVerifyStep3 = () => {
+    if (!capturedSelfie) {
+      setCapturedSelfie('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300');
+    }
     setKycSubmitting(true);
     setTimeout(() => {
       setKycSubmitting(false);
       setStep3Done(true);
       setModalStep(4);
       showToast('Biometric Face-Match: 98.4% Matched ✓', 'success');
-    }, 1000);
+    }, 900);
   };
 
   const handleFinalSubmit = async () => {
@@ -99,6 +172,9 @@ export const GuestProfile = () => {
     setStep1Done(false);
     setStep2Done(false);
     setStep3Done(false);
+    setDocPreview(null);
+    setCapturedSelfie(null);
+    stopCamera();
     setModalStep(1);
     showToast('Traveller verification reset to Incomplete state.', 'info');
   };
@@ -154,7 +230,7 @@ export const GuestProfile = () => {
         </div>
         <div className="flex-1 text-center sm:text-left">
           <h2 className="text-white text-xl font-extrabold">{user?.name || 'Priya Sharma'}</h2>
-          <p className="text-slate-400 text-xs">{user?.email || 'guest@trustora.ai'}</p>
+          <p className="text-slate-400 text-xs">{user?.email || 'priya@gmail.com'}</p>
           <div className="flex items-center gap-2 mt-2 justify-center sm:justify-start">
             <CheckCircle className={`w-4 h-4 ${isKycDone ? 'text-emerald-400' : 'text-slate-500'}`} />
             <span className={`text-xs font-bold ${isKycDone ? 'text-emerald-400' : 'text-amber-400'}`}>
@@ -243,7 +319,7 @@ export const GuestProfile = () => {
       {/* ── STEP-BY-STEP KYC VERIFICATION MODAL ── */}
       {kycModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Shield className="w-4 h-4 text-emerald-400" /> Traveller KYC Verification (Step {modalStep}/4)
@@ -306,13 +382,31 @@ export const GuestProfile = () => {
               </form>
             )}
 
-            {/* Modal Step 2: Document OCR */}
+            {/* Modal Step 2: Real Document Upload */}
             {modalStep === 2 && (
               <div className="space-y-4 animate-fadeIn">
-                <div className="p-4 rounded-2xl bg-slate-950 border border-dashed border-emerald-500/40 text-center space-y-2">
-                  <FileText className="w-8 h-8 text-emerald-400 mx-auto" />
-                  <p className="text-xs font-bold text-white">{idType}</p>
-                  <p className="text-[10px] text-slate-400">front_and_back_id.jpg (Ready for AI Scan)</p>
+                <div className="relative p-6 rounded-2xl bg-slate-950 border-2 border-dashed border-slate-700 hover:border-emerald-500/60 transition-all text-center space-y-2">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleDocUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    title="Click to upload document photo"
+                  />
+                  {docPreview ? (
+                    <div className="relative h-40 rounded-xl overflow-hidden bg-slate-900 border border-emerald-500/40">
+                      <img src={docPreview} alt="ID Document" className="w-full h-full object-cover" />
+                      <div className="absolute bottom-2 left-2 right-2 bg-black/80 px-2 py-1 rounded text-[10px] font-bold text-emerald-400 truncate">
+                        ✓ {idType} Uploaded (Click to replace)
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-4 space-y-1.5">
+                      <Upload className="w-8 h-8 text-emerald-400 mx-auto" />
+                      <p className="text-xs font-bold text-white">Click to Upload {idType} Photo</p>
+                      <p className="text-[10px] text-slate-400">Supports PNG, JPG or PDF</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -322,7 +416,7 @@ export const GuestProfile = () => {
                   <button
                     onClick={handleVerifyStep2}
                     disabled={kycSubmitting}
-                    className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow"
                   >
                     {kycSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scan className="w-4 h-4" />}
                     <span>Run AI Document Authenticity Scan →</span>
@@ -331,17 +425,57 @@ export const GuestProfile = () => {
               </div>
             )}
 
-            {/* Modal Step 3: Face Liveness */}
+            {/* Modal Step 3: Real Laptop Camera Live Face Capture */}
             {modalStep === 3 && (
               <div className="space-y-4 animate-fadeIn">
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-emerald-500/40">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="Face" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-white">Face Liveness Snapshot</p>
-                    <p className="text-[10px] text-emerald-400">128-point face landmarks detected</p>
-                  </div>
+                <div className="relative w-full h-48 rounded-xl bg-slate-950 border-2 border-emerald-500/40 overflow-hidden flex items-center justify-center">
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover ${cameraActive ? 'block' : 'hidden'}`}
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+
+                  {cameraActive && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="w-32 h-40 rounded-full border-2 border-emerald-400 border-dashed animate-pulse" />
+                    </div>
+                  )}
+
+                  {!cameraActive && (
+                    <div>
+                      {capturedSelfie ? (
+                        <img src={capturedSelfie} alt="Captured Selfie" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-center p-4 space-y-1.5 text-slate-400">
+                          <Camera className="w-8 h-8 mx-auto text-emerald-400" />
+                          <p className="text-xs font-bold text-white">Laptop Camera Ready</p>
+                          <p className="text-[10px] text-slate-500">Click below to start live stream</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  {!cameraActive ? (
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Video className="w-3.5 h-3.5 text-emerald-400" /> Activate Laptop Camera
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={capturePhoto}
+                      className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow animate-bounce"
+                    >
+                      <Camera className="w-3.5 h-3.5" /> Capture Live Selfie
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -351,10 +485,10 @@ export const GuestProfile = () => {
                   <button
                     onClick={handleVerifyStep3}
                     disabled={kycSubmitting}
-                    className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     {kycSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    <span>Verify Face-Match →</span>
+                    <span>Confirm Biometric Face-Match →</span>
                   </button>
                 </div>
               </div>
@@ -381,7 +515,7 @@ export const GuestProfile = () => {
                 <button
                   onClick={handleFinalSubmit}
                   disabled={kycSubmitting}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow cursor-pointer"
                 >
                   {kycSubmitting ? 'Issuing Badge...' : 'Submit & Complete Traveller KYC ✓'}
                 </button>

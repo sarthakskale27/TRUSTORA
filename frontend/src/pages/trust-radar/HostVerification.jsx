@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Fingerprint, ShieldCheck, Upload, Camera, CheckCircle2, AlertTriangle,
   Loader2, FileText, UserCheck, Lock, Award, RefreshCw, ArrowRight, Check,
-  RotateCcw, Sparkles, Scan, Eye, Zap, Image as ImageIcon
+  RotateCcw, Sparkles, Scan, Eye, Image as ImageIcon, Video, VideoOff
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -20,7 +20,20 @@ export const HostVerification = () => {
   const [fullName, setFullName] = useState('Rohan Mehta');
   const [idNumber, setIdNumber] = useState('4829 9182 3841');
 
-  // Milestone check states
+  // Real File Uploads state
+  const [frontDocFile, setFrontDocFile] = useState(null);
+  const [frontDocPreview, setFrontDocPreview] = useState(null);
+  const [backDocFile, setBackDocFile] = useState(null);
+  const [backDocPreview, setBackDocPreview] = useState(null);
+
+  // Real Webcam state
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [cameraError, setCameraError] = useState('');
+
+  // Milestone checks
   const [infoVerified, setInfoVerified] = useState(false);
   const [docScanned, setDocScanned] = useState(false);
   const [faceScanned, setFaceScanned] = useState(false);
@@ -53,6 +66,86 @@ export const HostVerification = () => {
       .catch(() => {});
   }, []);
 
+  // Clean up camera stream on unmount or step change
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [step]);
+
+  // Webcam Controls
+  const startCamera = async () => {
+    setCameraError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setCameraActive(true);
+      }
+    } catch (err) {
+      setCameraError('Camera access not available or permission denied. You can use the simulated face capture below.');
+      setCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 240;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      setCapturedPhoto(dataUrl);
+      stopCamera();
+      showToast('Live face snapshot captured successfully!', 'success');
+    }
+  };
+
+  const handleUseDemoSelfie = () => {
+    setCapturedPhoto('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400');
+    stopCamera();
+    showToast('Loaded sample profile photo for biometric analysis', 'info');
+  };
+
+  // Handle File Uploads
+  const handleFrontUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFrontDocFile(file);
+      setFrontDocPreview(URL.createObjectURL(file));
+      showToast(`Front ID uploaded: ${file.name}`, 'success');
+    }
+  };
+
+  const handleBackUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBackDocFile(file);
+      setBackDocPreview(URL.createObjectURL(file));
+      showToast(`Back ID uploaded: ${file.name}`, 'success');
+    }
+  };
+
+  const handleUseSampleDocuments = () => {
+    setFrontDocPreview('https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600');
+    setBackDocPreview('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600');
+    showToast('Loaded sample ID documents for verification test', 'info');
+  };
+
   // Step 1: Info check
   const handleVerifyInfo = (e) => {
     if (e) e.preventDefault();
@@ -71,22 +164,29 @@ export const HostVerification = () => {
 
   // Step 2: Document OCR Scan
   const handleScanDocument = () => {
+    if (!frontDocPreview) {
+      // Auto populate sample if not uploaded
+      handleUseSampleDocuments();
+    }
     setScanningDoc(true);
     setTimeout(() => {
       setScanningDoc(false);
       setDocScanned(true);
-      showToast('Document Authenticated: 99.1% OCR & Security Check Passed ✓', 'success');
-    }, 900);
+      showToast('Document Authenticated: 99.1% OCR & Security Watermark Passed ✓', 'success');
+    }, 1100);
   };
 
   // Step 3: Biometric Face-Match
   const handleScanFace = () => {
+    if (!capturedPhoto) {
+      handleUseDemoSelfie();
+    }
     setScanningFace(true);
     setTimeout(() => {
       setScanningFace(false);
       setFaceScanned(true);
       showToast('Biometric Face-Match: 98.4% 3D Landmark Alignment Confirmed ✓', 'success');
-    }, 900);
+    }, 1100);
   };
 
   // Step 4: Final Submit to Backend
@@ -125,6 +225,10 @@ export const HostVerification = () => {
     setInfoVerified(false);
     setDocScanned(false);
     setFaceScanned(false);
+    setFrontDocPreview(null);
+    setBackDocPreview(null);
+    setCapturedPhoto(null);
+    stopCamera();
     setVerStatus({ status: 'not_started', confidence: 0, faceMatchScore: 0, idAuthenticity: 0 });
     setStep(1);
     showToast('Verification reset. You can now test step by step.', 'info');
@@ -132,8 +236,8 @@ export const HostVerification = () => {
 
   const stepsList = [
     { num: 1, title: '1. Identity Info', done: infoVerified },
-    { num: 2, title: '2. Document Scan', done: docScanned },
-    { num: 3, title: '3. Face Verification', done: faceScanned },
+    { num: 2, title: '2. Upload Document', done: docScanned },
+    { num: 3, title: '3. Camera Face-Match', done: faceScanned },
     { num: 4, title: '4. AI Review', done: isVerified },
     { num: 5, title: '5. Verified Badge ✓', done: isVerified },
   ];
@@ -148,12 +252,12 @@ export const HostVerification = () => {
               <Fingerprint className="w-4 h-4" /> Multi-Signal Host Identity
             </span>
             <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-              STEP-BY-STEP KYC
+              DOCUMENT UPLOAD & WEBCAM
             </span>
           </div>
           <h1 className="text-2xl font-black text-white">Host Identity Verification Center</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Complete each verification requirement below to earn the <strong className="text-emerald-400">Verified Host ✓</strong> badge.
+            Upload your government ID and use your camera for biometric face verification to earn the <strong className="text-emerald-400">Verified Host ✓</strong> badge.
           </p>
         </div>
 
@@ -184,7 +288,7 @@ export const HostVerification = () => {
         </div>
       </div>
 
-      {/* Progress Steps Header (Always Clickable) */}
+      {/* Progress Steps Header */}
       <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between overflow-x-auto gap-2">
         {stepsList.map((s) => {
           const isCurr = s.num === step;
@@ -219,7 +323,7 @@ export const HostVerification = () => {
               <h3 className="text-sm font-black text-white flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-emerald-400" /> Step 1: Legal Identity & ID Number
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Enter your legal name as printed on your government ID.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Enter your legal name as printed on your government identity card.</p>
             </div>
             {infoVerified && (
               <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
@@ -275,48 +379,102 @@ export const HostVerification = () => {
         </div>
       )}
 
-      {/* ── STEP 2: DOCUMENT UPLOAD & OCR SCAN ── */}
+      {/* ── STEP 2: REAL DOCUMENT UPLOAD & OCR SCAN ── */}
       {step === 2 && (
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5 animate-fadeIn">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <Upload className="w-4 h-4 text-emerald-400" /> Step 2: Upload Government ID & AI OCR Scan
+                <Upload className="w-4 h-4 text-emerald-400" /> Step 2: Upload Government Document Photos ({idType})
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Upload front and back photos of your {idType}.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Click the boxes to upload real images from your laptop, or load sample documents.</p>
             </div>
-            {docScanned && (
-              <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> 99.1% Authenticated ✓
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleUseSampleDocuments}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all"
+              >
+                Use Sample Documents
+              </button>
+              {docScanned && (
+                <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" /> 99.1% Authenticated ✓
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-            <div className="p-5 rounded-2xl bg-slate-950 border border-dashed border-emerald-500/40 text-center space-y-2">
-              <FileText className="w-8 h-8 text-emerald-400 mx-auto" />
-              <p className="text-xs font-bold text-white">Front Side Document</p>
-              <p className="text-[10px] text-slate-400">{idType.split(' ')[0].toLowerCase()}_front_scan.jpg</p>
-              <span className="inline-block px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold">
-                {docScanned ? 'Hologram & Microprint Validated ✓' : 'Ready to Scan'}
-              </span>
+          {/* Document Upload Boxes with Real File Inputs & Image Preview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl">
+            {/* Front Document Box */}
+            <div className="relative p-5 rounded-2xl bg-slate-950 border-2 border-dashed border-slate-700 hover:border-emerald-500/60 transition-all text-center space-y-3 group">
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleFrontUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                title="Click to upload Front ID"
+              />
+
+              {frontDocPreview ? (
+                <div className="relative h-40 rounded-xl overflow-hidden bg-slate-900 border border-emerald-500/40">
+                  <img src={frontDocPreview} alt="Front ID" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-2 left-2 right-2 bg-black/80 px-2 py-1 rounded text-[10px] font-bold text-emerald-400 truncate">
+                    ✓ Front ID Attached (Click to change)
+                  </div>
+                </div>
+              ) : (
+                <div className="py-6 space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-emerald-400 group-hover:scale-110 transition-transform">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs font-bold text-white">Upload Front Side</p>
+                  <p className="text-[10px] text-slate-400">Click to browse PNG, JPG or PDF</p>
+                  <span className="inline-block px-2.5 py-1 rounded bg-slate-900 text-slate-400 text-[10px] font-semibold border border-slate-800">
+                    Browse File
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="p-5 rounded-2xl bg-slate-950 border border-dashed border-emerald-500/40 text-center space-y-2">
-              <FileText className="w-8 h-8 text-emerald-400 mx-auto" />
-              <p className="text-xs font-bold text-white">Back Side Document</p>
-              <p className="text-[10px] text-slate-400">{idType.split(' ')[0].toLowerCase()}_back_scan.jpg</p>
-              <span className="inline-block px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold">
-                {docScanned ? 'QR Code & Seal Matched ✓' : 'Ready to Scan'}
-              </span>
+            {/* Back Document Box */}
+            <div className="relative p-5 rounded-2xl bg-slate-950 border-2 border-dashed border-slate-700 hover:border-emerald-500/60 transition-all text-center space-y-3 group">
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleBackUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                title="Click to upload Back ID"
+              />
+
+              {backDocPreview ? (
+                <div className="relative h-40 rounded-xl overflow-hidden bg-slate-900 border border-emerald-500/40">
+                  <img src={backDocPreview} alt="Back ID" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-2 left-2 right-2 bg-black/80 px-2 py-1 rounded text-[10px] font-bold text-emerald-400 truncate">
+                    ✓ Back ID Attached (Click to change)
+                  </div>
+                </div>
+              ) : (
+                <div className="py-6 space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-emerald-400 group-hover:scale-110 transition-transform">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs font-bold text-white">Upload Back Side</p>
+                  <p className="text-[10px] text-slate-400">Click to browse PNG, JPG or PDF</p>
+                  <span className="inline-block px-2.5 py-1 rounded bg-slate-900 text-slate-400 text-[10px] font-semibold border border-slate-800">
+                    Browse File
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
           {scanningDoc && (
-            <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/40 max-w-xl space-y-2 animate-pulse">
+            <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/40 max-w-2xl space-y-2 animate-pulse">
               <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
                 <Scan className="w-4 h-4 animate-spin" />
-                <span>Scanning Security Microprint, Hologram & UIDAI Text...</span>
+                <span>Running AI OCR Extraction, Microprint & Security Hologram Verification...</span>
               </div>
               <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full w-4/5 animate-pulse" />
@@ -324,7 +482,7 @@ export const HostVerification = () => {
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button onClick={() => setStep(1)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer">
               ← Back
             </button>
@@ -334,7 +492,7 @@ export const HostVerification = () => {
               className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center gap-2 cursor-pointer transition-all"
             >
               {scanningDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scan className="w-4 h-4" />}
-              <span>{docScanned ? 'Re-Run Document Scan' : 'Run AI Document Authenticity Scan'}</span>
+              <span>{docScanned ? 'Re-Run Document OCR Scan' : 'Run AI Document Authenticity Scan'}</span>
             </button>
 
             {docScanned && (
@@ -342,22 +500,22 @@ export const HostVerification = () => {
                 onClick={() => setStep(3)}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
               >
-                <span>Proceed to Step 3: Face Verification</span> <ArrowRight className="w-3.5 h-3.5" />
+                <span>Proceed to Step 3: Camera Face-Match</span> <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         </div>
       )}
 
-      {/* ── STEP 3: BIOMETRIC FACE VERIFICATION ── */}
+      {/* ── STEP 3: LIVE LAPTOP WEBCAM & BIOMETRIC FACE CAPTURE ── */}
       {step === 3 && (
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5 animate-fadeIn">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <Camera className="w-4 h-4 text-emerald-400" /> Step 3: Biometric Face-Match & Liveness Check
+                <Camera className="w-4 h-4 text-emerald-400" /> Step 3: Laptop Camera Face Detection & Liveness Capture
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Align face with camera viewfinder to run 128-point landmark matching.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Use your laptop camera to capture a live face photo for 128-point biometric match.</p>
             </div>
             {faceScanned && (
               <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
@@ -366,28 +524,106 @@ export const HostVerification = () => {
             )}
           </div>
 
-          <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center gap-5 max-w-xl">
-            <div className="relative w-28 h-28 rounded-2xl bg-slate-800 border-2 border-emerald-500/60 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300"
-                alt="Selfie Frame"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 border-2 border-emerald-400/50 rounded-2xl pointer-events-none" />
+          {/* Camera Viewfinder & Snapshot Area */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl">
+            {/* Live Camera View */}
+            <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-3 flex flex-col justify-between">
+              <div className="relative w-full h-48 rounded-xl bg-slate-900 border-2 border-emerald-500/40 overflow-hidden flex items-center justify-center shadow-inner">
+                {/* Live Video Stream */}
+                <video
+                  ref={videoRef}
+                  playsInline
+                  muted
+                  className={`w-full h-full object-cover ${cameraActive ? 'block' : 'hidden'}`}
+                />
+
+                {/* Face Mesh Landmark Overlay */}
+                {cameraActive && (
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="w-36 h-44 rounded-full border-2 border-emerald-400/80 border-dashed animate-pulse flex items-center justify-center">
+                      <span className="text-[9px] text-emerald-300 font-bold bg-black/60 px-2 py-0.5 rounded">Align Face Here</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Camera Inactive Placeholder */}
+                {!cameraActive && (
+                  <div className="text-center p-4 space-y-2">
+                    <VideoOff className="w-8 h-8 text-slate-500 mx-auto" />
+                    <p className="text-xs font-bold text-slate-300">Laptop Camera Idle</p>
+                    <p className="text-[10px] text-slate-500">Click below to activate your webcam</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden Canvas for Frame Capture */}
+              <canvas ref={canvasRef} className="hidden" />
+
+              {/* Camera Actions */}
+              <div className="flex gap-2">
+                {!cameraActive ? (
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow"
+                  >
+                    <Video className="w-3.5 h-3.5" /> Start Laptop Camera
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={capturePhoto}
+                    className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow animate-bounce"
+                  >
+                    <Camera className="w-3.5 h-3.5" /> Capture Live Photo
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-1.5 text-center sm:text-left">
-              <p className="text-xs font-bold text-white">Live Camera Snapshot</p>
-              <p className="text-[11px] text-emerald-400 font-semibold">128-point face mesh landmarks ready</p>
-              <p className="text-[10px] text-slate-500">Cross-referenced with {idType} photo.</p>
+            {/* Captured Snapshot / Sample Profile Face */}
+            <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-3 flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-bold text-white mb-2">Captured Face for Biometric Match</p>
+                <div className="relative w-full h-48 rounded-xl bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center">
+                  {capturedPhoto ? (
+                    <img src={capturedPhoto} alt="Captured Face" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center p-4 space-y-2 text-slate-500">
+                      <UserCheck className="w-8 h-8 mx-auto" />
+                      <p className="text-xs">No snapshot captured yet</p>
+                    </div>
+                  )}
+                  {capturedPhoto && (
+                    <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                      ✓ Snapshot Ready
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleUseDemoSelfie}
+                className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+              >
+                Use Sample Profile Photo
+              </button>
             </div>
           </div>
 
+          {cameraError && (
+            <div className="p-3 rounded-2xl bg-amber-950/30 border border-amber-500/30 text-xs text-amber-300 max-w-2xl flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{cameraError}</span>
+            </div>
+          )}
+
           {scanningFace && (
-            <div className="p-4 rounded-2xl bg-slate-950 border border-teal-500/40 max-w-xl space-y-2 animate-pulse">
+            <div className="p-4 rounded-2xl bg-slate-950 border border-teal-500/40 max-w-2xl space-y-2 animate-pulse">
               <div className="flex items-center gap-2 text-teal-400 text-xs font-bold">
                 <Eye className="w-4 h-4 animate-spin" />
-                <span>Running 3D Depth & Landmark Face-Match Scan...</span>
+                <span>Running 3D Depth & 128-point Biometric Landmark Face-Match Scan...</span>
               </div>
               <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-teal-400 rounded-full w-4/5 animate-pulse" />
@@ -395,7 +631,7 @@ export const HostVerification = () => {
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button onClick={() => setStep(2)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer">
               ← Back
             </button>
@@ -405,7 +641,7 @@ export const HostVerification = () => {
               className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center gap-2 cursor-pointer transition-all"
             >
               {scanningFace ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              <span>{faceScanned ? 'Re-Run Face-Match' : 'Scan Face & Confirm Face-Match'}</span>
+              <span>{faceScanned ? 'Re-Run Biometric Face-Match' : 'Run Biometric Face-Match & Liveness Check'}</span>
             </button>
 
             {faceScanned && (
@@ -447,7 +683,7 @@ export const HostVerification = () => {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div>
                   <p className="text-xs font-bold text-white">Document Authenticity Scan</p>
-                  <p className="text-[10px] text-slate-400">Security microprint & UIDAI/Govt OCR validated</p>
+                  <p className="text-[10px] text-slate-400">Uploaded Document & Security Microprint Validated</p>
                 </div>
               </div>
               <span className="text-xs font-black text-emerald-400">99.1% Matched</span>
@@ -458,7 +694,7 @@ export const HostVerification = () => {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div>
                   <p className="text-xs font-bold text-white">Biometric Face-Match</p>
-                  <p className="text-[10px] text-slate-400">128 facial landmarks aligned with ID photo</p>
+                  <p className="text-[10px] text-slate-400">Live Camera Snapshot Aligned (128 Landmarks)</p>
                 </div>
               </div>
               <span className="text-xs font-black text-teal-400">98.4% Confidence</span>

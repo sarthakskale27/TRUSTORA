@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Fingerprint, ShieldCheck, Upload, Camera, CheckCircle2, AlertTriangle,
   Loader2, FileText, UserCheck, Lock, Award, RefreshCw, ArrowRight, Check,
-  RotateCcw, Sparkles, Scan, Eye
+  RotateCcw, Sparkles, Scan, Eye, Zap, Image as ImageIcon
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -20,13 +20,10 @@ export const HostVerification = () => {
   const [fullName, setFullName] = useState('Rohan Mehta');
   const [idNumber, setIdNumber] = useState('4829 9182 3841');
 
-  // Step-by-step verification milestones
+  // Milestone check states
   const [infoVerified, setInfoVerified] = useState(false);
-  const [docFrontUploaded, setDocFrontUploaded] = useState(false);
-  const [docBackUploaded, setDocBackUploaded] = useState(false);
-  const [docVerified, setDocVerified] = useState(false);
-  const [selfieCaptured, setSelfieCaptured] = useState(false);
-  const [faceVerified, setFaceVerified] = useState(false);
+  const [docScanned, setDocScanned] = useState(false);
+  const [faceScanned, setFaceScanned] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
   const [verStatus, setVerStatus] = useState({
@@ -39,11 +36,11 @@ export const HostVerification = () => {
   useEffect(() => {
     api.get('/trust/host/verification/status')
       .then(res => {
-        if (res.data && res.data.verified) {
+        if (res.data && (res.data.verified || res.data.status === 'verified')) {
           setIsVerified(true);
           setInfoVerified(true);
-          setDocVerified(true);
-          setFaceVerified(true);
+          setDocScanned(true);
+          setFaceScanned(true);
           setStep(5);
           setVerStatus({
             status: 'verified',
@@ -56,9 +53,9 @@ export const HostVerification = () => {
       .catch(() => {});
   }, []);
 
-  // Step 1: Verify Identity Info
+  // Step 1: Info check
   const handleVerifyInfo = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!fullName.trim() || !idNumber.trim()) {
       showToast('Please enter your legal name and ID number', 'error');
       return;
@@ -67,37 +64,32 @@ export const HostVerification = () => {
     setTimeout(() => {
       setLoading(false);
       setInfoVerified(true);
-      showToast('ID information format validated successfully ✓', 'success');
+      showToast('Legal ID information format validated ✓', 'success');
       setStep(2);
-    }, 600);
+    }, 400);
   };
 
-  // Step 2: Verify Document Authenticity
-  const handleVerifyDoc = () => {
+  // Step 2: Document OCR Scan
+  const handleScanDocument = () => {
     setScanningDoc(true);
     setTimeout(() => {
       setScanningDoc(false);
-      setDocFrontUploaded(true);
-      setDocBackUploaded(true);
-      setDocVerified(true);
+      setDocScanned(true);
       showToast('Document Authenticated: 99.1% OCR & Security Check Passed ✓', 'success');
-      setStep(3);
-    }, 1200);
+    }, 900);
   };
 
-  // Step 3: Run Face-Match & Liveness
-  const handleVerifyFace = () => {
+  // Step 3: Biometric Face-Match
+  const handleScanFace = () => {
     setScanningFace(true);
     setTimeout(() => {
       setScanningFace(false);
-      setSelfieCaptured(true);
-      setFaceVerified(true);
-      showToast('Biometric Face-Match: 98.4% Alignment Confirmed ✓', 'success');
-      setStep(4);
-    }, 1200);
+      setFaceScanned(true);
+      showToast('Biometric Face-Match: 98.4% 3D Landmark Alignment Confirmed ✓', 'success');
+    }, 900);
   };
 
-  // Step 4: Final Submission
+  // Step 4: Final Submit to Backend
   const handleSubmitVerification = async () => {
     setSubmitting(true);
     try {
@@ -124,41 +116,38 @@ export const HostVerification = () => {
     }
   };
 
-  // Reset to re-test verification flow
+  // Reset verification for testing
   const handleReset = async () => {
     try {
       await api.post('/trust/host/verification/reset');
     } catch {}
     setIsVerified(false);
     setInfoVerified(false);
-    setDocFrontUploaded(false);
-    setDocBackUploaded(false);
-    setDocVerified(false);
-    setSelfieCaptured(false);
-    setFaceVerified(false);
+    setDocScanned(false);
+    setFaceScanned(false);
     setVerStatus({ status: 'not_started', confidence: 0, faceMatchScore: 0, idAuthenticity: 0 });
     setStep(1);
-    showToast('Verification reset. You can now verify step by step.', 'info');
+    showToast('Verification reset. You can now test step by step.', 'info');
   };
 
-  const steps = [
+  const stepsList = [
     { num: 1, title: '1. Identity Info', done: infoVerified },
-    { num: 2, title: '2. Document Scan', done: docVerified },
-    { num: 3, title: '3. Face Verification', done: faceVerified },
+    { num: 2, title: '2. Document Scan', done: docScanned },
+    { num: 3, title: '3. Face Verification', done: faceScanned },
     { num: 4, title: '4. AI Review', done: isVerified },
     { num: 5, title: '5. Verified Badge ✓', done: isVerified },
   ];
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fadeIn pb-12">
-      {/* Header Banner */}
+      {/* Top Banner */}
       <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
               <Fingerprint className="w-4 h-4" /> Multi-Signal Host Identity
             </span>
-            <span className="text-[9px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
+            <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
               STEP-BY-STEP KYC
             </span>
           </div>
@@ -180,39 +169,35 @@ export const HostVerification = () => {
             <div>
               <p className="text-xs font-bold text-white">{isVerified ? 'Verified Host ✓' : 'Pending Verification'}</p>
               <p className="text-[10px] text-emerald-400 font-semibold">
-                {isVerified ? `Confidence: ${verStatus.confidence}%` : '0 / 3 Steps Completed'}
+                {isVerified ? `Confidence: ${verStatus.confidence || 94.2}%` : 'Incomplete'}
               </p>
             </div>
           </div>
 
-          {isVerified && (
-            <button
-              onClick={handleReset}
-              className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Reset verification to test step-by-step again"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> Re-verify
-            </button>
-          )}
+          <button
+            onClick={handleReset}
+            className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Reset verification to test step-by-step again"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Re-verify / Reset
+          </button>
         </div>
       </div>
 
-      {/* Progress Steps Header */}
+      {/* Progress Steps Header (Always Clickable) */}
       <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between overflow-x-auto gap-2">
-        {steps.map((s) => {
+        {stepsList.map((s) => {
           const isCurr = s.num === step;
           return (
             <button
               key={s.num}
-              onClick={() => {
-                if (s.done || s.num <= step) setStep(s.num);
-              }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              onClick={() => setStep(s.num)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isCurr
                   ? 'bg-emerald-600 text-white font-bold shadow'
                   : s.done
                   ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-slate-950 text-slate-500 border border-slate-800/60'
+                  : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
               }`}
             >
               <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
@@ -226,19 +211,19 @@ export const HostVerification = () => {
         })}
       </div>
 
-      {/* ── STEP 1: IDENTITY INFO ── */}
+      {/* ── STEP 1: IDENTITY DETAILS ── */}
       {step === 1 && (
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-emerald-400" /> Step 1: Legal Identity & Document Info
+                <UserCheck className="w-4 h-4 text-emerald-400" /> Step 1: Legal Identity & ID Number
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Enter your legal name as listed on your government identity card.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Enter your legal name as printed on your government ID.</p>
             </div>
             {infoVerified && (
               <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> Info Validated
+                <Check className="w-3.5 h-3.5" /> Validated ✓
               </span>
             )}
           </div>
@@ -249,7 +234,7 @@ export const HostVerification = () => {
               <select
                 value={idType}
                 onChange={e => setIdType(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white"
               >
                 <option value="Aadhaar Card (UIDAI)">Aadhaar Card (UIDAI)</option>
                 <option value="Passport (Govt of India)">Passport (Govt of India)</option>
@@ -264,17 +249,17 @@ export const HostVerification = () => {
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="e.g. Rohan Mehta"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Document / ID Number</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Document Number</label>
               <input
                 value={idNumber}
                 onChange={e => setIdNumber(e.target.value)}
                 placeholder="e.g. 4829 9182 3841"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white"
               />
             </div>
 
@@ -290,19 +275,19 @@ export const HostVerification = () => {
         </div>
       )}
 
-      {/* ── STEP 2: DOCUMENT UPLOAD & AUTHENTICITY ── */}
+      {/* ── STEP 2: DOCUMENT UPLOAD & OCR SCAN ── */}
       {step === 2 && (
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <Upload className="w-4 h-4 text-emerald-400" /> Step 2: Upload Government Document & AI OCR Check
+                <Upload className="w-4 h-4 text-emerald-400" /> Step 2: Upload Government ID & AI OCR Scan
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">Upload front and back photos of your {idType}.</p>
             </div>
-            {docVerified && (
+            {docScanned && (
               <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> 99.1% Authenticated
+                <Check className="w-3.5 h-3.5" /> 99.1% Authenticated ✓
               </span>
             )}
           </div>
@@ -313,7 +298,7 @@ export const HostVerification = () => {
               <p className="text-xs font-bold text-white">Front Side Document</p>
               <p className="text-[10px] text-slate-400">{idType.split(' ')[0].toLowerCase()}_front_scan.jpg</p>
               <span className="inline-block px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold">
-                {docVerified ? 'OCR & Hologram Matched ✓' : 'Ready to Scan'}
+                {docScanned ? 'Hologram & Microprint Validated ✓' : 'Ready to Scan'}
               </span>
             </div>
 
@@ -322,7 +307,7 @@ export const HostVerification = () => {
               <p className="text-xs font-bold text-white">Back Side Document</p>
               <p className="text-[10px] text-slate-400">{idType.split(' ')[0].toLowerCase()}_back_scan.jpg</p>
               <span className="inline-block px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold">
-                {docVerified ? 'Barcode & Seal Matched ✓' : 'Ready to Scan'}
+                {docScanned ? 'QR Code & Seal Matched ✓' : 'Ready to Scan'}
               </span>
             </div>
           </div>
@@ -331,31 +316,40 @@ export const HostVerification = () => {
             <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/40 max-w-xl space-y-2 animate-pulse">
               <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
                 <Scan className="w-4 h-4 animate-spin" />
-                <span>Running AI Hologram & Microprint Authenticity Scan...</span>
+                <span>Scanning Security Microprint, Hologram & UIDAI Text...</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full w-3/4 animate-pulse" />
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full w-4/5 animate-pulse" />
               </div>
             </div>
           )}
 
           <div className="flex items-center gap-3 pt-2">
-            <button onClick={() => setStep(1)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
+            <button onClick={() => setStep(1)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer">
               ← Back
             </button>
             <button
-              onClick={handleVerifyDoc}
+              onClick={handleScanDocument}
               disabled={scanningDoc}
               className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center gap-2 cursor-pointer transition-all"
             >
               {scanningDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scan className="w-4 h-4" />}
-              <span>Run AI Document Authenticity Scan →</span>
+              <span>{docScanned ? 'Re-Run Document Scan' : 'Run AI Document Authenticity Scan'}</span>
             </button>
+
+            {docScanned && (
+              <button
+                onClick={() => setStep(3)}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Proceed to Step 3: Face Verification</span> <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── STEP 3: LIVE FACE VERIFICATION ── */}
+      {/* ── STEP 3: BIOMETRIC FACE VERIFICATION ── */}
       {step === 3 && (
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -363,11 +357,11 @@ export const HostVerification = () => {
               <h3 className="text-sm font-black text-white flex items-center gap-2">
                 <Camera className="w-4 h-4 text-emerald-400" /> Step 3: Biometric Face-Match & Liveness Check
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Align your face with the camera frame to verify live presence.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Align face with camera viewfinder to run 128-point landmark matching.</p>
             </div>
-            {faceVerified && (
+            {faceScanned && (
               <span className="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> 98.4% Matched
+                <Check className="w-3.5 h-3.5" /> 98.4% Matched ✓
               </span>
             )}
           </div>
@@ -379,13 +373,13 @@ export const HostVerification = () => {
                 alt="Selfie Frame"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 border border-emerald-400/40 rounded-2xl pointer-events-none" />
+              <div className="absolute inset-0 border-2 border-emerald-400/50 rounded-2xl pointer-events-none" />
             </div>
 
             <div className="space-y-1.5 text-center sm:text-left">
-              <p className="text-xs font-bold text-white">Live Viewfinder: Host Profile Photo</p>
+              <p className="text-xs font-bold text-white">Live Camera Snapshot</p>
               <p className="text-[11px] text-emerald-400 font-semibold">128-point face mesh landmarks ready</p>
-              <p className="text-[10px] text-slate-500">Cross-referenced with {idType} document picture.</p>
+              <p className="text-[10px] text-slate-500">Cross-referenced with {idType} photo.</p>
             </div>
           </div>
 
@@ -393,38 +387,47 @@ export const HostVerification = () => {
             <div className="p-4 rounded-2xl bg-slate-950 border border-teal-500/40 max-w-xl space-y-2 animate-pulse">
               <div className="flex items-center gap-2 text-teal-400 text-xs font-bold">
                 <Eye className="w-4 h-4 animate-spin" />
-                <span>Aligning Biometric Landmarks & Running 3D Depth Check...</span>
+                <span>Running 3D Depth & Landmark Face-Match Scan...</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div className="h-full bg-teal-400 rounded-full w-4/5 animate-pulse" />
               </div>
             </div>
           )}
 
           <div className="flex items-center gap-3 pt-2">
-            <button onClick={() => setStep(2)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
+            <button onClick={() => setStep(2)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer">
               ← Back
             </button>
             <button
-              onClick={handleVerifyFace}
+              onClick={handleScanFace}
               disabled={scanningFace}
               className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center gap-2 cursor-pointer transition-all"
             >
               {scanningFace ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              <span>Scan Face & Confirm Face-Match →</span>
+              <span>{faceScanned ? 'Re-Run Face-Match' : 'Scan Face & Confirm Face-Match'}</span>
             </button>
+
+            {faceScanned && (
+              <button
+                onClick={() => setStep(4)}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Proceed to Step 4: Final AI Review</span> <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── STEP 4: FINAL REVIEW & SUBMIT ── */}
+      {/* ── STEP 4: FINAL AI REVIEW & SUBMIT ── */}
       {step === 4 && (
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5 animate-fadeIn">
           <div className="border-b border-slate-800 pb-3">
             <h3 className="text-sm font-black text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> Step 4: Final AI Review & Signal Verification
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Review verified signals before issuing the Verified Host badge.</p>
+            <p className="text-xs text-slate-400 mt-0.5">Review verified signals before issuing the official Verified Host badge.</p>
           </div>
 
           <div className="space-y-3 max-w-xl">
@@ -463,7 +466,7 @@ export const HostVerification = () => {
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button onClick={() => setStep(3)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
+            <button onClick={() => setStep(3)} className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer">
               ← Back
             </button>
             <button
@@ -478,7 +481,7 @@ export const HostVerification = () => {
         </div>
       )}
 
-      {/* ── STEP 5: VERIFIED STATUS DISPLAY ── */}
+      {/* ── STEP 5: VERIFIED STATUS CERTIFICATE ── */}
       {step === 5 && (
         <div className="space-y-6 animate-fadeIn">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

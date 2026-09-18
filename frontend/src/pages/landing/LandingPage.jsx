@@ -115,10 +115,11 @@ const STATS = [
 ];
 
 const DESTINATIONS = [
-  { city: 'Goa', tag: 'Beach Paradise', img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=500', count: 3, vibe: 'Coastal & Relaxed' },
-  { city: 'Manali', tag: 'Mountain Escape', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500', count: 2, vibe: 'Scenic & Peaceful' },
-  { city: 'Jaipur', tag: 'Royal Heritage', img: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=500', count: 3, vibe: 'Historic & Vibrant' },
-  { city: 'Kerala', tag: 'Backwater Bliss', img: 'https://images.unsplash.com/photo-1601001435957-74f9e52d4e3b?w=500', count: 3, vibe: 'Serene & Nature-Rich' }
+  { city: 'Goa', tag: 'Beach Paradise', img: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', count: 3, vibe: 'Coastal & Relaxed' },
+  { city: 'Manali', tag: 'Mountain Escape', img: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', count: 2, vibe: 'Scenic & Peaceful' },
+  { city: 'Jaipur', tag: 'Royal Heritage', img: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800', count: 3, vibe: 'Historic & Vibrant' },
+  { city: 'Kerala', tag: 'Backwater Bliss', img: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?w=800', count: 4, vibe: 'Serene & Nature-Rich' },
+  { city: 'Udaipur', tag: 'Lake Palace', img: 'https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?w=800', count: 2, vibe: 'Royal & Romantic' }
 ];
 
 export const LandingPage = ({ onGuestLogin, onHostLogin, onRegister }) => {
@@ -440,7 +441,7 @@ export const LandingPage = ({ onGuestLogin, onHostLogin, onRegister }) => {
                 className="dest-card group rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 text-left cursor-pointer transition-all hover:border-emerald-500/50"
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={d.img} alt={d.city} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-300" />
+                  <img src={d.img} alt={d.city} onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?w=800"; }} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-300" />
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 text-emerald-400 text-[10px] font-bold">
                     🛡️ Verified
                   </div>

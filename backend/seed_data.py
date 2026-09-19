@@ -833,6 +833,7 @@ def rebalance_host_properties(app=None):
     except Exception as e:
         db.session.rollback()
         print(f"[rebalance_host_properties] Error: {e}")
+        raise e
     finally:
         if ctx:
             ctx.pop()

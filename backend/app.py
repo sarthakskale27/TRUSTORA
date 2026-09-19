@@ -82,25 +82,8 @@ def create_app(config_class=Config):
     @app.route('/api/seed/rebalance-hosts', methods=['POST', 'GET'])
     def trigger_rebalance_hosts():
         try:
-            for s_email in ['sarthakskale27@gmail.com', 'host@hostboost.ai', 'sarthak@27', 'sarthak@gmail.com']:
-                u = User.query.filter_by(email=s_email).first()
-                if u:
-                    u.role = 'host'
-                    u.is_verified_host = True
-            
-            sarthak = User.query.filter_by(email='sarthakskale27@gmail.com').first()
-            if not sarthak:
-                sarthak = User.query.filter(User.email.ilike('%sarthak%')).first()
-            if not sarthak:
-                sarthak = User.query.filter_by(email='host@hostboost.ai').first()
-                
-            if sarthak:
-                for p in Property.query.filter(Property.name.ilike('%Sarthak%')).all():
-                    p.user_id = sarthak.id
-                db.session.commit()
-
             rebalance_host_properties(app)
-            return jsonify({'message': 'Host property ownership successfully rebalanced! Sarthak owns 3 properties.', 'sarthak_user_id': sarthak.id if sarthak else None}), 200
+            return jsonify({'message': 'Host property ownership successfully rebalanced across Sarthak (3), Rohan (4), Vikram, Deepa, Kavya, Arun, and Rajesh.'}), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 

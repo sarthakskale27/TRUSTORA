@@ -182,17 +182,31 @@ export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
                   <>
                     <button
                       type="button"
-                      onClick={() => { setEmail('priya@gmail.com'); setPassword('password123'); }}
+                      onClick={() => { setEmail('aarav@gmail.com'); setPassword('1234'); }}
                       className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[11px] font-bold text-emerald-300 transition-all cursor-pointer"
                     >
-                      Priya (priya@gmail.com)
+                      Aarav (aarav@gmail.com)
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setEmail('guest@trustora.ai'); setPassword('password123'); }}
+                      onClick={() => { setEmail('ananya@gmail.com'); setPassword('1234'); }}
                       className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[11px] font-bold text-emerald-300 transition-all cursor-pointer"
                     >
-                      Demo (guest@trustora.ai)
+                      Ananya (ananya@gmail.com)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('rohit@gmail.com'); setPassword('1234'); }}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[11px] font-bold text-emerald-300 transition-all cursor-pointer"
+                    >
+                      Rohit (rohit@gmail.com)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('meera@gmail.com'); setPassword('1234'); }}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[11px] font-bold text-emerald-300 transition-all cursor-pointer"
+                    >
+                      Meera (meera@gmail.com)
                     </button>
                   </>
                 )}
@@ -207,7 +221,7 @@ export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={portal === 'guest' ? 'priya@gmail.com' : 'host@trustora.ai'}
+                  placeholder={portal === 'guest' ? 'aarav@gmail.com' : 'host@trustora.ai'}
                   className={`w-full px-4 py-2.5 rounded-xl border ${inputCls} text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all`}
                 />
               </div>

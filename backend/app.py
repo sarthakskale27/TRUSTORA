@@ -4,7 +4,7 @@ from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from config import Config
 from models import db, User
-from seed_data import seed_database
+from seed_data import seed_database, seed_dummy_guests
 
 # Import Blueprints
 from routes.auth_routes import auth_bp
@@ -68,6 +68,14 @@ def create_app(config_class=Config):
         try:
             seed_database(app)
             return jsonify({'message': 'Trustora Database successfully seeded!'}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/seed/dummy-guests', methods=['POST', 'GET'])
+    def trigger_seed_guests():
+        try:
+            seed_dummy_guests(app)
+            return jsonify({'message': 'Dummy Guest Accounts (Aarav, Ananya, Rohit, Meera) successfully seeded with bookings & reviews!'}), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 

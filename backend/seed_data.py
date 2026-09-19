@@ -401,3 +401,173 @@ def seed_database(app):
             ))
         db.session.commit()
         print("[seed] Done! 25 properties, 150 guests, 300 bookings, 200 reviews, 50 notifications.")
+        
+        # Seed the 4 verified guest dummy accounts
+        seed_dummy_guests(app)
+
+
+def seed_dummy_guests(app=None):
+    """Seed 4 verified guest accounts with passbooking records and reviews."""
+    from datetime import date, timedelta
+    import random
+
+    ctx = app.app_context() if app else None
+    if ctx:
+        ctx.push()
+
+    try:
+        pw_hash = bcrypt.generate_password_hash('1234').decode('utf-8')
+        today = date.today()
+        properties = Property.query.all()
+        if not properties:
+            print("[seed_dummy_guests] No properties found in database.")
+            return
+
+        guests_data = [
+            {
+                'name': 'Aarav Patel',
+                'email': 'aarav@gmail.com',
+                'phone': '+91 98201 54321',
+                'avatar': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+                'bookings': [
+                    {'prop_idx': 0, 'offset': -35, 'nights': 3, 'guests': 2, 'status': 'checked_out', 'amount': 25500.0, 'channel': 'Trustora Direct'},
+                    {'prop_idx': 1, 'offset': -75, 'nights': 4, 'guests': 3, 'status': 'checked_out', 'amount': 24800.0, 'channel': 'Airbnb'},
+                    {'prop_idx': 2, 'offset': 10, 'nights': 2, 'guests': 2, 'status': 'confirmed', 'amount': 18000.0, 'channel': 'Trustora Direct'},
+                ],
+                'reviews': [
+                    {'prop_idx': 0, 'rating': 5.0, 'title': 'Magical Stay & Superb Host', 'comment': 'The villa was stunning with a crystal-clear private pool and authentic Goan hospitality. The Trustora verification badge was 100% accurate!'},
+                    {'prop_idx': 1, 'rating': 5.0, 'title': 'Snow Peaks & Cozy Fireplace', 'comment': 'Exceptional mountain retreat. Fast WiFi allowed us to work comfortably with pine forest views.'}
+                ]
+            },
+            {
+                'name': 'Ananya Sharma',
+                'email': 'ananya@gmail.com',
+                'phone': '+91 98112 34567',
+                'avatar': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+                'bookings': [
+                    {'prop_idx': 3, 'offset': -40, 'nights': 3, 'guests': 2, 'status': 'checked_out', 'amount': 21000.0, 'channel': 'Trustora Direct'},
+                    {'prop_idx': 4, 'offset': -95, 'nights': 2, 'guests': 2, 'status': 'checked_out', 'amount': 14000.0, 'channel': 'Booking.com'},
+                    {'prop_idx': 0, 'offset': 15, 'nights': 5, 'guests': 4, 'status': 'confirmed', 'amount': 42500.0, 'channel': 'Trustora Direct'},
+                ],
+                'reviews': [
+                    {'prop_idx': 3, 'rating': 5.0, 'title': 'Serene Backwater Oasis', 'comment': 'Calm, pristine, and surrounded by nature. Organic Kerala breakfast served every morning was top tier.'},
+                    {'prop_idx': 4, 'rating': 4.5, 'title': 'Heritage Charm with Modern Comfort', 'comment': 'Courtyard and traditional Rajasthani decor were beautiful. Very safe and central neighbourhood.'}
+                ]
+            },
+            {
+                'name': 'Rohit Verma',
+                'email': 'rohit@gmail.com',
+                'phone': '+91 98334 56789',
+                'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+                'bookings': [
+                    {'prop_idx': 1, 'offset': -50, 'nights': 4, 'guests': 2, 'status': 'checked_out', 'amount': 24000.0, 'channel': 'Trustora Direct'},
+                    {'prop_idx': 2, 'offset': -110, 'nights': 3, 'guests': 2, 'status': 'checked_out', 'amount': 16500.0, 'channel': 'WhatsApp Concierge'},
+                    {'prop_idx': 5, 'offset': -180, 'nights': 2, 'guests': 1, 'status': 'checked_out', 'amount': 12000.0, 'channel': 'Direct Booking'},
+                ],
+                'reviews': [
+                    {'prop_idx': 1, 'rating': 5.0, 'title': 'Best Mountain Stay Ever', 'comment': 'Clean wooden interiors, heater worked flawlessly, and the host gave great hiking route tips!'},
+                    {'prop_idx': 2, 'rating': 4.8, 'title': 'Peaceful Riverside Sanctuary', 'comment': 'Meditative atmosphere by the river. Clean rooms and very polite housekeeping staff.'}
+                ]
+            },
+            {
+                'name': 'Meera Iyer',
+                'email': 'meera@gmail.com',
+                'phone': '+91 98450 12345',
+                'avatar': 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
+                'bookings': [
+                    {'prop_idx': 0, 'offset': -20, 'nights': 3, 'guests': 3, 'status': 'checked_out', 'amount': 27000.0, 'channel': 'Trustora Direct'},
+                    {'prop_idx': 4, 'offset': -80, 'nights': 3, 'guests': 2, 'status': 'checked_out', 'amount': 25500.0, 'channel': 'Trustora Direct'},
+                    {'prop_idx': 3, 'offset': 20, 'nights': 4, 'guests': 2, 'status': 'confirmed', 'amount': 32000.0, 'channel': 'Trustora Direct'},
+                ],
+                'reviews': [
+                    {'prop_idx': 0, 'rating': 5.0, 'title': 'Flawless Beach Vacation', 'comment': 'Walking distance to the beach. Highly accurate listing description and effortless self-checkin.'},
+                    {'prop_idx': 4, 'rating': 5.0, 'title': 'Spectacular Lake Views', 'comment': 'Watching the sunset from the terrace over Lake Pichola was unforgettable. 10/10 recommendation!'}
+                ]
+            }
+        ]
+
+        for g_data in guests_data:
+            # 1. User Account
+            user = User.query.filter_by(email=g_data['email']).first()
+            if not user:
+                user = User(
+                    name=g_data['name'],
+                    email=g_data['email'],
+                    password_hash=pw_hash,
+                    phone=g_data['phone'],
+                    role='guest',
+                    is_verified_host=False,
+                    avatar_url=g_data['avatar']
+                )
+                db.session.add(user)
+                db.session.flush()
+            else:
+                user.password_hash = pw_hash
+                user.role = 'guest'
+                user.avatar_url = g_data['avatar']
+                db.session.flush()
+
+            # 2. Guest Profile
+            guest = Guest.query.filter_by(email=g_data['email']).first()
+            if not guest:
+                guest = Guest(
+                    name=g_data['name'],
+                    email=g_data['email'],
+                    phone=g_data['phone'],
+                    trust_rating=4.9,
+                    avatar_url=g_data['avatar']
+                )
+                db.session.add(guest)
+                db.session.flush()
+
+            # 3. Bookings (Link to both user.id and guest.id)
+            for b_spec in g_data['bookings']:
+                p = properties[b_spec['prop_idx'] % len(properties)]
+                cin = today + timedelta(days=b_spec['offset'])
+                cout = cin + timedelta(days=b_spec['nights'])
+                b_ref = f"TR-{random.randint(10000, 99999)}"
+                
+                existing_bk = Booking.query.filter_by(property_id=p.id, guest_id=user.id, check_in=cin).first()
+                if not existing_bk:
+                    bk = Booking(
+                        booking_reference=b_ref,
+                        property_id=p.id,
+                        guest_id=user.id,
+                        check_in=cin,
+                        check_out=cout,
+                        total_nights=b_spec['nights'],
+                        guest_count=b_spec['guests'],
+                        total_amount=b_spec['amount'],
+                        status=b_spec['status'],
+                        payment_status='paid',
+                        channel=b_spec['channel'],
+                        created_at=datetime.combine(cin - timedelta(days=12), datetime.min.time())
+                    )
+                    db.session.add(bk)
+
+            # 4. Reviews
+            for r_spec in g_data['reviews']:
+                p = properties[r_spec['prop_idx'] % len(properties)]
+                existing_rev = Review.query.filter_by(property_id=p.id, guest_name=g_data['name']).first()
+                if not existing_rev:
+                    rev = Review(
+                        property_id=p.id,
+                        guest_name=g_data['name'],
+                        guest_avatar=g_data['avatar'],
+                        rating=r_spec['rating'],
+                        title=r_spec['title'],
+                        comment=r_spec['comment'],
+                        review_date=today - timedelta(days=random.randint(5, 45)),
+                        sentiment='Positive',
+                        verified_stay=True
+                    )
+                    db.session.add(rev)
+
+        db.session.commit()
+        print("[seed_dummy_guests] Successfully created 4 dummy guest accounts with past bookings and reviews!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"[seed_dummy_guests] Error: {e}")
+    finally:
+        if ctx:
+            ctx.pop()

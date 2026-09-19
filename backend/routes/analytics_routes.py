@@ -10,6 +10,7 @@ analytics_bp = Blueprint('analytics', __name__)
 @analytics_bp.route('/summary', methods=['GET'])
 @analytics_bp.route('/revenue', methods=['GET'])
 @token_required
+def get_dashboard_stats(current_user):
     # Fetch all properties belonging strictly to this host
     email_lower = (current_user.email or '').lower()
     name_lower = (current_user.name or '').lower()

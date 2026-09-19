@@ -149,8 +149,60 @@ export const BookingManager = () => {
     }
   };
 
+  const [newBookingCount, setNewBookingCount] = useState(0);
+  const prevBookingIds = React.useRef(new Set());
+
   useEffect(() => {
     fetchBookingsAndProperties();
+    // Poll every 15 seconds for new bookings from guests
+    const interval = setInterval(async () => {
+      try {
+        const [bRes, pRes] = await Promise.all([
+          api.get('/bookings'),
+          api.get('/properties')
+        ]);
+        const allProps = pRes.data.properties || [];
+        const email = (user?.email || '').toLowerCase();
+        let filteredProps = allProps;
+        if (email.includes('rohan') || email === 'host@trustora.ai') {
+          filteredProps = allProps.filter(p => ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet'].includes(p.name));
+        } else if (email.includes('sarthak') || email.includes('hostboost')) {
+          filteredProps = allProps.filter(p => (p.name || '').includes('Sarthak'));
+        } else if (email.includes('vikram')) {
+          filteredProps = allProps.filter(p => ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli'].includes(p.name));
+        } else if (email.includes('deepa')) {
+          filteredProps = allProps.filter(p => ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay'].includes(p.name));
+        } else if (email.includes('kavya')) {
+          filteredProps = allProps.filter(p => ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel'].includes(p.name));
+        } else if (email.includes('arun')) {
+          filteredProps = allProps.filter(p => ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla'].includes(p.name));
+        } else if (email.includes('rajesh') || email.includes('budget') || email.includes('low')) {
+          filteredProps = allProps.filter(p => (p.trust_score || 100) < 75);
+        }
+
+        const validPropIds = new Set(filteredProps.map(p => p.id));
+        const allBookings = bRes.data.bookings || [];
+        const scopedBookings = allBookings.filter(b => validPropIds.has(b.property_id || b.property?.id));
+
+        const seen = new Set();
+        const dedupedBookings = scopedBookings.filter(b => {
+          const key = `${b.property_id}_${b.check_in}_${b.check_out}_${b.guest_name || b.guest_id}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        // Detect new bookings
+        const currentIds = new Set(dedupedBookings.map(b => b.id));
+        const genuinelyNew = [...currentIds].filter(id => !prevBookingIds.current.has(id));
+        if (genuinelyNew.length > 0 && prevBookingIds.current.size > 0) {
+          setNewBookingCount(n => n + genuinelyNew.length);
+        }
+        prevBookingIds.current = currentIds;
+        setBookings(dedupedBookings.length > 0 ? dedupedBookings : allBookings.slice(0, 4));
+      } catch {}
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdateStatus = async (bookingId, newStatus) => {
@@ -191,9 +243,20 @@ export const BookingManager = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
-          <h1 className="text-2xl font-black text-white">Bookings & Channel Manager</h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Track multi-channel reservations across Airbnb, Booking.com, WhatsApp Concierge, and Direct Website.
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-2xl font-black text-white">Bookings &amp; Channel Manager</h1>
+            {newBookingCount > 0 && (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold animate-pulse cursor-pointer" onClick={() => setNewBookingCount(0)}>
+                🔔 {newBookingCount} New Booking{newBookingCount > 1 ? 's' : ''}!
+              </span>
+            )}
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+              Live — Refreshes every 15s
+            </span>
+          </div>
+          <p className="text-xs text-slate-400">
+            All guest bookings from the website appear here instantly. Track multi-channel reservations in real time.
           </p>
         </div>
         <button

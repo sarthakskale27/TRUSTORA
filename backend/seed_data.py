@@ -502,6 +502,7 @@ def seed_dummy_guests(app=None):
                 db.session.add(user)
                 db.session.flush()
             else:
+                user.name = g_data['name']
                 user.password_hash = pw_hash
                 user.role = 'guest'
                 user.avatar_url = g_data['avatar']
@@ -518,6 +519,10 @@ def seed_dummy_guests(app=None):
                     avatar_url=g_data['avatar']
                 )
                 db.session.add(guest)
+                db.session.flush()
+            else:
+                guest.name = g_data['name']
+                guest.avatar_url = g_data['avatar']
                 db.session.flush()
 
             # 3. Bookings (Link to both user.id and guest.id)
@@ -545,23 +550,24 @@ def seed_dummy_guests(app=None):
                     )
                     db.session.add(bk)
 
-            # 4. Reviews
+            # 4. Reviews (insert under both full name and short name so it matches any format)
             for r_spec in g_data['reviews']:
                 p = properties[r_spec['prop_idx'] % len(properties)]
-                existing_rev = Review.query.filter_by(property_id=p.id, guest_name=g_data['name']).first()
-                if not existing_rev:
-                    rev = Review(
-                        property_id=p.id,
-                        guest_name=g_data['name'],
-                        guest_avatar=g_data['avatar'],
-                        rating=r_spec['rating'],
-                        title=r_spec['title'],
-                        comment=r_spec['comment'],
-                        review_date=today - timedelta(days=random.randint(5, 45)),
-                        sentiment='Positive',
-                        verified_stay=True
-                    )
-                    db.session.add(rev)
+                for name_variant in [g_data['name'], g_data['name'].split()[0]]:
+                    existing_rev = Review.query.filter_by(property_id=p.id, guest_name=name_variant).first()
+                    if not existing_rev:
+                        rev = Review(
+                            property_id=p.id,
+                            guest_name=name_variant,
+                            guest_avatar=g_data['avatar'],
+                            rating=r_spec['rating'],
+                            title=r_spec['title'],
+                            comment=r_spec['comment'],
+                            review_date=today - timedelta(days=random.randint(5, 45)),
+                            sentiment='Positive',
+                            verified_stay=True
+                        )
+                        db.session.add(rev)
 
         db.session.commit()
         print("[seed_dummy_guests] Successfully created 4 dummy guest accounts with past bookings and reviews!")

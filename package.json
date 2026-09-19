@@ -2,10 +2,8 @@
   "name": "trustora-platform",
   "version": "1.0.0",
   "private": true,
-  "description": "Trustora - AI-Powered Verified Hospitality Intelligence Platform",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "vercel-build": "cd frontend && npm install && npm run build",
-    "start": "cd frontend && npm run preview"
+    "build": "node build.js",
+    "start": "vite preview"
   }
 }

@@ -156,15 +156,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
           </div>
         </div>
 
-        <div className="p-3 border-t border-slate-800/80 space-y-2">
-          <button
-            onClick={() => switchPortalRole('guest')}
-            className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Switch to Guest Portal</span>
-          </button>
-
+        <div className="p-3 border-t border-slate-800/80">
           <div className="p-3 rounded-xl bg-slate-900 border border-emerald-500/20">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">

@@ -22,17 +22,21 @@ export const MyBookings = () => {
   const { showToast } = useToast();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('upcoming');
+  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
-    api.get('/bookings?limit=50')
+    api.get('/bookings/my-bookings')
       .then(r => setBookings(r.data.bookings || []))
-      .catch(() => {})
+      .catch(() => {
+        api.get('/bookings?limit=50')
+          .then(r => setBookings(r.data.bookings || []))
+          .catch(() => {})
+          .finally(() => setLoading(false));
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const now = new Date();
-  const today_str = new Date().toISOString().split('T')[0];
 
   const isCurrent = (b) => {
     if (b.status === 'cancelled') return false;
@@ -44,7 +48,7 @@ export const MyBookings = () => {
   const isUpcoming = (b) => {
     if (b.status === 'cancelled') return false;
     const cin = new Date(b.check_in);
-    return cin > now;
+    return cin > now && b.status !== 'checked_out' && b.status !== 'completed';
   };
 
   const isPast = (b) => {
@@ -58,21 +62,21 @@ export const MyBookings = () => {
   const pastStays = bookings.filter(isPast);
   const cancelledStays = bookings.filter(b => b.status === 'cancelled');
 
-  // Fallback if current stays empty, use first upcoming as preview
   const getTabList = () => {
     switch (activeTab) {
-      case 'current':   return currentStays.length > 0 ? currentStays : (bookings.filter(b => b.status === 'confirmed').slice(0, 1));
+      case 'all':       return bookings;
+      case 'current':   return currentStays.length > 0 ? currentStays : bookings.filter(b => b.status === 'checked_in' || b.status === 'confirmed').slice(0, 1);
       case 'upcoming':  return upcomingStays;
       case 'past':      return pastStays;
       case 'cancelled': return cancelledStays;
-      default:          return upcomingStays;
+      default:          return bookings;
     }
   };
 
   const displayed = getTabList();
 
   const handleDownloadInvoice = (ref) => {
-    showToast(`Invoice for booking ${ref} generated (PDF receipt).`, 'success');
+    showToast(`Official Tax Invoice for ${ref} downloaded (PDF).`, 'success');
   };
 
   const handleContactConcierge = (propName) => {
@@ -94,31 +98,32 @@ export const MyBookings = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
-              <Calendar className="w-4 h-4" /> Guest Stay Management
+              <Calendar className="w-4 h-4" /> Verified Stay History
             </span>
             <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-              VERIFIED BOOKINGS
+              TRUSTORA PROTECTED
             </span>
           </div>
           <h1 className="text-2xl font-black text-white">My Trips & Stays</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Logged in as: <strong className="text-emerald-400">{user?.name || 'Priya Sharma'}</strong> ({user?.email || 'priya@gmail.com'})
+            Guest Account: <strong className="text-emerald-400">{user?.name || 'Guest'}</strong> ({user?.email})
           </p>
         </div>
 
         <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-center shrink-0">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">Total Stays Record</p>
-          <p className="text-xl font-black text-emerald-400">{bookings.length} Bookings</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase">Total Bookings</p>
+          <p className="text-xl font-black text-emerald-400">{bookings.length} Stays</p>
         </div>
       </div>
 
-      {/* 4 Trip Tabs */}
+      {/* 5 Trip Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {[
+          { id: 'all',       label: `All Stays (${bookings.length})` },
           { id: 'upcoming',  label: `Upcoming Trips (${upcomingStays.length})` },
-          { id: 'current',   label: `Current Stay (${currentStays.length || 1})` },
+          { id: 'current',   label: `Current Stay (${currentStays.length})` },
           { id: 'past',      label: `Past Stays (${pastStays.length})` },
-          { id: 'cancelled', label: `Cancelled (${cancelledStays.length})` },
+          { id: 'cancelled', label: `Cancelled & Refunded (${cancelledStays.length})` },
         ].map(t => (
           <button
             key={t.id}
@@ -145,27 +150,39 @@ export const MyBookings = () => {
         <div className="space-y-4">
           {displayed.map(b => {
             const prop = b.property || {};
-            const img = prop.photos?.[0]?.url || prop.primary_image || DEFAULT_IMAGE;
+            const img = b.property_image || prop.primary_image || prop.photos?.[0]?.url || DEFAULT_IMAGE;
             const style = STATUS_STYLES[b.status] || STATUS_STYLES.confirmed;
+            const isCancelled = b.status === 'cancelled';
 
             return (
               <div
-                key={b.id}
-                className="p-5 rounded-3xl bg-slate-900 border border-slate-800 hover:border-emerald-500/40 transition-all flex flex-col md:flex-row gap-5 shadow-xl"
+                key={b.id || b.booking_reference}
+                className={`p-5 rounded-3xl border transition-all flex flex-col md:flex-row gap-5 shadow-xl ${
+                  isCancelled
+                    ? 'bg-slate-900/90 border-rose-500/30 hover:border-rose-500/50'
+                    : 'bg-slate-900 border-slate-800 hover:border-emerald-500/40'
+                }`}
               >
                 {/* Image */}
-                <div className="relative w-full md:w-48 h-40 md:h-auto rounded-2xl overflow-hidden bg-slate-800 shrink-0">
+                <div className="relative w-full md:w-48 h-44 md:h-auto rounded-2xl overflow-hidden bg-slate-800 shrink-0">
                   <img
                     src={img}
-                    alt={prop.name}
+                    alt={prop.name || b.property_name}
                     onError={e => { e.target.onerror = null; e.target.src = DEFAULT_IMAGE; }}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-2.5 left-2.5">
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/70 text-emerald-400 backdrop-blur border border-emerald-500/30 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3" /> Trust: {prop.trust_score || 95}/100
+                      <ShieldCheck className="w-3 h-3" /> Trust: {prop.trust_score || 96}/100
                     </span>
                   </div>
+                  {isCancelled && (
+                    <div className="absolute inset-0 bg-slate-950/60 flex items-center justify-center p-2 text-center">
+                      <span className="px-2.5 py-1 rounded-xl bg-rose-600/90 text-white font-black text-[10px] uppercase tracking-wider shadow">
+                        Cancelled
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Details */}
@@ -173,13 +190,18 @@ export const MyBookings = () => {
                   <div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">
-                          Ref: {b.booking_reference || 'TR-78291'}
-                        </span>
-                        <h3 className="text-base font-black text-white">{prop.name || 'Verified Luxury Stay'}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            Ref: {b.booking_reference || 'TR-78291'}
+                          </span>
+                          <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            {b.channel || 'Trustora Direct'}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-black text-white mt-1.5">{prop.name || b.property_name || 'Verified Luxury Stay'}</h3>
                         <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                           <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                          {prop.address ? `${prop.address}, ` : ''}{prop.city || 'Goa'}, {prop.state || 'India'}
+                          {prop.address ? `${prop.address}, ` : ''}{prop.city || b.property_city || 'India'}
                         </p>
                       </div>
 
@@ -187,6 +209,14 @@ export const MyBookings = () => {
                         {style.label}
                       </span>
                     </div>
+
+                    {/* Cancelled Banner if cancelled */}
+                    {isCancelled && (
+                      <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 font-medium">
+                        <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span>This booking was cancelled and a full 100% refund of ₹{(b.total_amount || 0).toLocaleString()} was credited back to your original payment method.</span>
+                      </div>
+                    )}
 
                     {/* Stay Specs Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 mt-3 border-t border-slate-800/80 text-xs">
@@ -199,12 +229,14 @@ export const MyBookings = () => {
                         <p className="font-bold text-white mt-0.5">{b.check_out}</p>
                       </div>
                       <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/60">
-                        <p className="text-[10px] text-slate-500 font-semibold">Duration & Guests</p>
-                        <p className="font-bold text-slate-300 mt-0.5">{b.total_nights || 3} Nights • {b.guest_count || 2} Guests</p>
+                        <p className="text-[10px] text-slate-500 font-semibold">Stay Duration</p>
+                        <p className="font-bold text-slate-300 mt-0.5">{b.total_nights || b.nights_count || 3} Nights • {b.guest_count || b.guests_count || 2} Guests</p>
                       </div>
                       <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/60">
-                        <p className="text-[10px] text-slate-500 font-semibold">Total Paid</p>
-                        <p className="font-black text-emerald-400 mt-0.5">₹{(b.total_amount || 15000).toLocaleString()}</p>
+                        <p className="text-[10px] text-slate-500 font-semibold">{isCancelled ? 'Amount Refunded' : 'Total Tariff'}</p>
+                        <p className={`font-black mt-0.5 ${isCancelled ? 'text-rose-400 line-through' : 'text-emerald-400'}`}>
+                          ₹{(b.total_amount || 15000).toLocaleString()}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -213,7 +245,7 @@ export const MyBookings = () => {
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleContactConcierge(prop.name)}
+                        onClick={() => handleContactConcierge(prop.name || b.property_name)}
                         className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp AI Concierge
@@ -222,7 +254,7 @@ export const MyBookings = () => {
                         onClick={() => handleDownloadInvoice(b.booking_reference)}
                         className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5" /> Invoice
+                        <Download className="w-3.5 h-3.5" /> {isCancelled ? 'Refund Receipt' : 'Invoice'}
                       </button>
                     </div>
 

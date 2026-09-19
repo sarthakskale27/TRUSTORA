@@ -577,3 +577,153 @@ def seed_dummy_guests(app=None):
     finally:
         if ctx:
             ctx.pop()
+
+
+def rebalance_host_properties(app=None):
+    """Ensure Sarthak owns exactly 3 properties, and other hosts own their respective portfolios."""
+    from models import db, User, Property, PropertyImage, Booking, Guest
+    from datetime import date, timedelta
+    import random
+
+    ctx = app.app_context() if app else None
+    if ctx:
+        ctx.push()
+
+    try:
+        today = date.today()
+        # 1. Find or create Sarthak User
+        sarthak = User.query.filter((User.email == 'sarthakskale27@gmail.com') | (User.email == 'host@hostboost.ai')).first()
+        if not sarthak:
+            pw_hash = bcrypt.generate_password_hash('password123').decode('utf-8')
+            sarthak = User(
+                name='Sarthak Kale',
+                email='sarthakskale27@gmail.com',
+                password_hash=pw_hash,
+                phone='+91 98230 11223',
+                role='host',
+                is_verified_host=True
+            )
+            db.session.add(sarthak)
+            db.session.flush()
+        else:
+            sarthak.role = 'host'
+            sarthak.is_verified_host = True
+            db.session.flush()
+
+        # 2. Find Rohan Mehta
+        rohan = User.query.filter_by(email='host@trustora.ai').first()
+        if not rohan:
+            pw_hash = bcrypt.generate_password_hash('password123').decode('utf-8')
+            rohan = User(
+                name='Rohan Mehta',
+                email='host@trustora.ai',
+                password_hash=pw_hash,
+                phone='+91 98200 11222',
+                role='host',
+                is_verified_host=True
+            )
+            db.session.add(rohan)
+            db.session.flush()
+
+        # 3. Create or update Sarthak's 3 properties
+        sarthak_props_specs = [
+            {
+                'name': "Sarthak's Heritage Sanctuary & Beachfront Villa",
+                'city': 'Goa', 'state': 'Goa', 'address': 'Calangute Beach Road, North Goa',
+                'property_type': 'villa', 'base_price': 9500.0, 'total_rooms': 3, 'total_bathrooms': 3, 'max_guests': 6,
+                'trust_score': 96, 'neighborhood_vibe': 'Beachfront, scenic cafes, 24/7 security',
+                'img': 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914'
+            },
+            {
+                'name': "Sarthak's Himalayan Snow Pine Chalet",
+                'city': 'Manali', 'state': 'Himachal Pradesh', 'address': 'Old Manali Pine Forest Ridge',
+                'property_type': 'chalet', 'base_price': 6800.0, 'total_rooms': 2, 'total_bathrooms': 2, 'max_guests': 4,
+                'trust_score': 95, 'neighborhood_vibe': 'Scenic mountain trails, peaceful & safe',
+                'img': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4'
+            },
+            {
+                'name': "Sarthak's Lakeview Royal Heritage Suite",
+                'city': 'Udaipur', 'state': 'Rajasthan', 'address': 'Near Lake Pichola Ghat, Udaipur',
+                'property_type': 'heritage', 'base_price': 8200.0, 'total_rooms': 2, 'total_bathrooms': 2, 'max_guests': 4,
+                'trust_score': 97, 'neighborhood_vibe': 'Romantic lakefront, historic ghats, cultural center',
+                'img': 'https://images.unsplash.com/photo-1615836245337-f5b9b2303f10'
+            }
+        ]
+
+        # Reset any existing properties currently assigned to Sarthak to avoid overflow
+        existing_s_props = Property.query.filter_by(user_id=sarthak.id).all()
+        for p in existing_s_props:
+            if not any(spec['name'] in p.name for spec in sarthak_props_specs):
+                p.user_id = rohan.id
+        db.session.flush()
+
+        channels = ['Airbnb', 'Booking.com', 'WhatsApp Concierge', 'Trustora Direct', 'Direct Booking']
+        guests = Guest.query.limit(10).all()
+
+        for spec in sarthak_props_specs:
+            p = Property.query.filter_by(name=spec['name']).first()
+            if not p:
+                p = Property(
+                    user_id=sarthak.id,
+                    name=spec['name'],
+                    property_type=spec['property_type'],
+                    description=f"Exclusive luxury stay hosted by Sarthak with premium amenities, verified authentic listing.",
+                    address=spec['address'],
+                    city=spec['city'],
+                    state=spec['state'],
+                    country='India',
+                    zip_code='403516',
+                    base_price=spec['base_price'],
+                    total_rooms=spec['total_rooms'],
+                    total_bathrooms=spec['total_bathrooms'],
+                    max_guests=spec['max_guests'],
+                    trust_score=spec['trust_score'],
+                    neighborhood_vibe=spec['neighborhood_vibe']
+                )
+                db.session.add(p)
+                db.session.flush()
+
+                p_img = PropertyImage(
+                    property_id=p.id,
+                    image_url=spec['img'],
+                    caption="Main Front View",
+                    is_primary=True,
+                    overall_score=95
+                )
+                db.session.add(p_img)
+            else:
+                p.user_id = sarthak.id
+                p.base_price = spec['base_price']
+                p.trust_score = spec['trust_score']
+                db.session.flush()
+
+            # Ensure bookings for Sarthak's properties
+            if not p.bookings or len(p.bookings) < 4:
+                for idx, ch in enumerate(channels):
+                    cin = today - timedelta(days=(idx + 1) * 8)
+                    cout = cin + timedelta(days=3)
+                    g = guests[idx % len(guests)] if guests else None
+                    bk = Booking(
+                        booking_reference=f"TR-{random.randint(10000, 99999)}",
+                        property_id=p.id,
+                        guest_id=g.id if g else 1,
+                        check_in=cin,
+                        check_out=cout,
+                        total_nights=3,
+                        guest_count=2,
+                        total_amount=float(p.base_price * 3),
+                        status='checked_out' if idx > 0 else 'confirmed',
+                        payment_status='paid',
+                        channel=ch,
+                        created_at=datetime.combine(cin - timedelta(days=10), datetime.min.time())
+                    )
+                    db.session.add(bk)
+
+        db.session.commit()
+        print(f"[rebalance_host_properties] Sarthak (ID: {sarthak.id}) now owns EXACTLY 3 luxury properties!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"[rebalance_host_properties] Error: {e}")
+    finally:
+        if ctx:
+            ctx.pop()

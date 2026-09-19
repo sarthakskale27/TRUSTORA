@@ -246,11 +246,34 @@ class Booking(db.Model):
     room = db.relationship('Room', backref='bookings', lazy=True)
 
     def to_dict(self):
+        img_url = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'
+        if self.property and self.property.images:
+            img_url = self.property.images[0].image_url
+            
+        prop_dict = None
+        if self.property:
+            prop_dict = {
+                'id': self.property.id,
+                'name': self.property.name,
+                'title': self.property.name,
+                'city': self.property.city,
+                'state': self.property.state,
+                'address': self.property.address,
+                'trust_score': self.property.trust_score or 95,
+                'primary_image': img_url,
+                'image_url': img_url,
+                'photos': [{'url': img_url}],
+                'base_price': self.property.base_price
+            }
+
         return {
             'id': self.id,
             'booking_reference': self.booking_reference,
             'property_id': self.property_id,
-            'property': {'id': self.property.id, 'title': self.property.name, 'name': self.property.name, 'city': self.property.city} if self.property else None,
+            'property': prop_dict,
+            'property_name': self.property.name if self.property else 'Luxury Stay',
+            'property_city': self.property.city if self.property else 'India',
+            'property_image': img_url,
             'guest': self.guest.to_dict() if self.guest else None,
             'guest_name': self.guest.name if self.guest else 'Guest',
             'check_in': self.check_in.strftime('%Y-%m-%d') if self.check_in else None,
@@ -263,6 +286,7 @@ class Booking(db.Model):
             'status': self.status,
             'payment_status': self.payment_status,
             'channel': self.channel,
+            'cancellation_reason': 'Full 100% refund processed to original payment method' if self.status == 'cancelled' else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 

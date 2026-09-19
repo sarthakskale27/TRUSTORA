@@ -23,10 +23,8 @@ def get_properties():
             except Exception:
                 pass
 
-    if current_user and current_user.role == 'host':
+    if current_user and current_user.role == 'host' and request.args.get('all') != 'true':
         properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
-        if not properties:
-            properties = Property.query.order_by(Property.created_at.desc()).all()
     else:
         properties = Property.query.order_by(Property.created_at.desc()).all()
 

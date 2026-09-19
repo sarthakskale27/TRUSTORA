@@ -78,16 +78,8 @@ export const GuestLayout = ({ children, activeTab, setActiveTab }) => {
           })}
         </div>
 
-        {/* Portal Switcher & User Card */}
-        <div className="p-3 border-t border-slate-800/80 space-y-2">
-          <button
-            onClick={() => switchPortalRole('host')}
-            className="w-full py-2 px-3 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Switch to Host Portal</span>
-          </button>
-
+        {/* User Card */}
+        <div className="p-3 border-t border-slate-800/80">
           <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs text-white">

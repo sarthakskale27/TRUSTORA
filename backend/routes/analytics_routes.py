@@ -11,12 +11,14 @@ analytics_bp = Blueprint('analytics', __name__)
 @analytics_bp.route('/revenue', methods=['GET'])
 @token_required
 def get_dashboard_stats(current_user):
-    # Fetch all properties belonging to this host
-    properties = Property.query.filter_by(user_id=current_user.id).all()
+    # Fetch all properties belonging strictly to this host
+    properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
     
-    # If host has no properties assigned to their user_id, fallback to first available property in system for demo/viewing
-    if not properties:
-        properties = Property.query.limit(5).all()
+    # Auto-initialize Sarthak's 3 properties if empty
+    if not properties and ('sarthak' in (current_user.email or '').lower() or 'hostboost' in (current_user.email or '').lower()):
+        from seed_data import rebalance_host_properties
+        rebalance_host_properties()
+        properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
 
     prop_list = [
         {
@@ -35,14 +37,12 @@ def get_dashboard_stats(current_user):
         for p in properties
     ]
 
-    # Check for requested property_id
+    # Check for requested property_id (strictly belonging to this host)
     req_prop_id = request.args.get('property_id', type=int)
     
     selected_prop = None
     if req_prop_id:
         selected_prop = next((p for p in properties if p.id == req_prop_id), None)
-        if not selected_prop:
-            selected_prop = Property.query.get(req_prop_id)
 
     if not selected_prop and properties:
         selected_prop = properties[0]
@@ -53,12 +53,18 @@ def get_dashboard_stats(current_user):
             'selected_property': None,
             'total_revenue': 0,
             'total_bookings': 0,
+            'active_bookings': 0,
+            'cancelled_bookings': 0,
+            'total_nights': 0,
             'occupancy_rate': 0,
+            'avg_occupancy': 0,
             'adr': 0,
             'revpar': 0,
             'revenue_trend': [],
+            'revenue_chart': [],
             'channel_distribution': [],
-            'bookings': []
+            'bookings': [],
+            'is_new_host': True
         }), 200
 
     # Retrieve bookings strictly for the selected property

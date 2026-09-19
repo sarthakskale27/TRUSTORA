@@ -195,7 +195,11 @@ def login():
             role=role_guess,
             is_verified_host=(role_guess == 'host')
         )
-        db.session.add(user)
+    # Auto-sync Sarthak properties to active user id if Sarthak
+    if 'sarthak' in (user.email or '').lower() or 'hostboost' in (user.email or '').lower():
+        s_props = Property.query.filter(Property.name.ilike('%Sarthak%')).all()
+        for sp in s_props:
+            sp.user_id = user.id
         db.session.commit()
 
     token = generate_token(user.id)

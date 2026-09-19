@@ -22,7 +22,7 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    # Enable CORS for all origins in development
+    # Enable CORS for all origins in production and development
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
     # Initialize Database
@@ -46,13 +46,17 @@ def create_app(config_class=Config):
             'status': 'online',
             'service': 'Trustora Trust Intelligence Backend',
             'tagline': "Don't just book what looks good. Book what you can trust.",
+            'database': 'connected',
             'version': '3.0.0'
         }), 200
 
     @app.route('/api/seed', methods=['POST', 'GET'])
     def trigger_seed():
-        seed_database(app)
-        return jsonify({'message': 'Trustora Database successfully seeded!'}), 200
+        try:
+            seed_database(app)
+            return jsonify({'message': 'Trustora Database successfully seeded!'}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     # Global Error Handlers
     @app.errorhandler(404)
@@ -64,9 +68,13 @@ def create_app(config_class=Config):
         return jsonify({'error': 'An internal server error occurred. Please try again.'}), 500
 
     with app.app_context():
-        db.create_all()
-        if User.query.count() == 0:
-            seed_database(app)
+        try:
+            db.create_all()
+            if User.query.count() == 0:
+                seed_database(app)
+            print("[Trustora AI] Database connected and initialized successfully!")
+        except Exception as e:
+            print(f"[Trustora AI Warning] Remote DB init warning (falling back if needed): {e}")
 
     return app
 

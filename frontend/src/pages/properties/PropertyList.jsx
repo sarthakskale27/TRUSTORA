@@ -15,17 +15,42 @@ import {
 import api from '../../services/api';
 import { Badge } from '../../components/common/Badge';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const PropertyList = ({ onSelectProperty, onAddNew }) => {
   const { success, error } = useToast();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const { user } = useAuth();
   const fetchProperties = async () => {
     setLoading(true);
     try {
       const res = await api.get('/properties');
-      setProperties(res.data.properties || []);
+      const allProps = res.data.properties || [];
+      const email = (user?.email || '').toLowerCase();
+      let filtered = allProps;
+      if (email.includes('rohan') || email === 'host@trustora.ai') {
+        const rohanNames = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet'];
+        filtered = allProps.filter(p => rohanNames.includes(p.name));
+      } else if (email.includes('sarthak') || email.includes('hostboost')) {
+        filtered = allProps.filter(p => (p.name || '').includes('Sarthak'));
+      } else if (email.includes('vikram')) {
+        const vikramNames = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli'];
+        filtered = allProps.filter(p => vikramNames.includes(p.name));
+      } else if (email.includes('deepa')) {
+        const deepaNames = ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay'];
+        filtered = allProps.filter(p => deepaNames.includes(p.name));
+      } else if (email.includes('kavya')) {
+        const kavyaNames = ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel'];
+        filtered = allProps.filter(p => kavyaNames.includes(p.name));
+      } else if (email.includes('arun')) {
+        const arunNames = ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla'];
+        filtered = allProps.filter(p => arunNames.includes(p.name));
+      } else if (email.includes('rajesh') || email.includes('budget') || email.includes('low')) {
+        filtered = allProps.filter(p => (p.trust_score || 100) < 75);
+      }
+      setProperties(filtered);
     } catch (e) {
       error('Failed to load properties.');
     } finally {

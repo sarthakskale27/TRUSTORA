@@ -25,11 +25,21 @@ export const MyBookings = () => {
   const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
+    const processBookings = (rawList) => {
+      const seen = new Set();
+      return rawList.filter(b => {
+        const key = `${b.property_id || b.property?.id}_${b.check_in}_${b.check_out}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
+
     api.get('/bookings/my-bookings')
-      .then(r => setBookings(r.data.bookings || []))
+      .then(r => setBookings(processBookings(r.data.bookings || [])))
       .catch(() => {
         api.get('/bookings?limit=50')
-          .then(r => setBookings(r.data.bookings || []))
+          .then(r => setBookings(processBookings(r.data.bookings || [])))
           .catch(() => {})
           .finally(() => setLoading(false));
       })

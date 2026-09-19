@@ -10,15 +10,29 @@ analytics_bp = Blueprint('analytics', __name__)
 @analytics_bp.route('/summary', methods=['GET'])
 @analytics_bp.route('/revenue', methods=['GET'])
 @token_required
-def get_dashboard_stats(current_user):
     # Fetch all properties belonging strictly to this host
-    properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
+    if 'sarthak' in (current_user.email or '').lower() or 'hostboost' in (current_user.email or '').lower() or 'sarthak' in (current_user.name or '').lower():
+        raw_props = Property.query.filter((Property.user_id == current_user.id) | (Property.name.ilike('%Sarthak%'))).order_by(Property.created_at.desc()).all()
+        seen = set()
+        properties = []
+        for p in raw_props:
+            if p.id not in seen:
+                seen.add(p.id)
+                properties.append(p)
+    else:
+        properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
     
     # Auto-initialize Sarthak's 3 properties if empty
     if not properties and ('sarthak' in (current_user.email or '').lower() or 'hostboost' in (current_user.email or '').lower()):
         from seed_data import rebalance_host_properties
         rebalance_host_properties()
-        properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
+        raw_props = Property.query.filter((Property.user_id == current_user.id) | (Property.name.ilike('%Sarthak%'))).order_by(Property.created_at.desc()).all()
+        seen = set()
+        properties = []
+        for p in raw_props:
+            if p.id not in seen:
+                seen.add(p.id)
+                properties.append(p)
 
     prop_list = [
         {

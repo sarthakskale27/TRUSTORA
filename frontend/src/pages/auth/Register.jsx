@@ -23,9 +23,6 @@ export const Register = ({ onSwitchToLogin, onBack }) => {
     try {
       const u = await register({ name, email, password, phone, role });
       showToast('Account created! Welcome to Trustora, ' + u.name, 'success');
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
     } catch (err) {
       showToast(err.response?.data?.error || 'Registration failed', 'error');
       setLoading(false);

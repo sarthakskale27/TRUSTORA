@@ -15,7 +15,7 @@ const GoogleIcon = () => (
 );
 
 export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
-  const { login, demoLogin, demoGuestLogin } = useAuth();
+  const { login, googleLogin, demoLogin, demoGuestLogin } = useAuth();
   const { showToast } = useToast();
   const { isDark, toggleTheme } = useTheme();
 
@@ -35,11 +35,8 @@ export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const u = await login(email, password);
+      const u = await login(email, password, portal || 'guest');
       showToast(`Welcome back to Trustora, ${u.name}!`, 'success');
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
     } catch (err) {
       showToast(err.response?.data?.error || 'Login failed — check credentials', 'error');
       setLoading(false);
@@ -51,9 +48,6 @@ export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
     try {
       const u = portal === 'guest' ? await demoGuestLogin() : await demoLogin();
       showToast(`Welcome to Trustora, ${u.name}!`, 'success');
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
     } catch {
       showToast('Demo login failed — is the backend running?', 'error');
       setLoading(false);
@@ -63,15 +57,12 @@ export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/auth/google-mock', {
+      const u = await googleLogin({
         email: portal === 'guest' ? 'guest.google@trustora.ai' : 'host.google@trustora.ai',
         name:  portal === 'guest' ? 'Google Guest' : 'Google Host',
         role:  portal === 'guest' ? 'guest' : 'host'
       });
-      const { token, user } = res.data;
-      localStorage.setItem('trustora_token', token);
-      localStorage.setItem('trustora_user', JSON.stringify(user));
-      window.location.reload();
+      showToast(`Welcome to Trustora, ${u.name}!`, 'success');
     } catch {
       showToast('Google sign-in failed. Please try again.', 'error');
       setLoading(false);

@@ -12,13 +12,20 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('trustora_user')  || localStorage.getItem('hostboost_user');
     if (token && storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
         api.get('/auth/me')
           .then((res) => {
-            setUser(res.data.user);
-            localStorage.setItem('trustora_user', JSON.stringify(res.data.user));
+            if (res.data && res.data.user) {
+              setUser(res.data.user);
+              localStorage.setItem('trustora_user', JSON.stringify(res.data.user));
+            }
           })
-          .catch(() => logout())
+          .catch((err) => {
+            if (err?.response?.status === 401) {
+              logout();
+            }
+          })
           .finally(() => setLoading(false));
       } catch (e) {
         logout();
@@ -29,8 +36,8 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
+  const login = async (email, password, role) => {
+    const res = await api.post('/auth/login', { email, password, role });
     const { token, user: userData } = res.data;
     localStorage.setItem('trustora_token', token);
     localStorage.setItem('trustora_user', JSON.stringify(userData));
@@ -47,6 +54,15 @@ export const AuthProvider = ({ children }) => {
     return newUser;
   };
 
+  const googleLogin = async ({ email, name, role }) => {
+    const res = await api.post('/auth/google-mock', { email, name, role });
+    const { token, user: userData } = res.data;
+    localStorage.setItem('trustora_token', token);
+    localStorage.setItem('trustora_user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
+  };
+
   const logout = () => {
     localStorage.removeItem('trustora_token');
     localStorage.removeItem('trustora_user');
@@ -56,11 +72,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Demo logins for Trustora
-  const demoLogin      = async () => login('host@trustora.ai',  'password123');
-  const demoGuestLogin = async () => login('guest@trustora.ai', 'password123');
+  const demoLogin      = async () => login('host@trustora.ai',  'password123', 'host');
+  const demoGuestLogin = async () => login('guest@trustora.ai', 'password123', 'guest');
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, demoLogin, demoGuestLogin }}>
+    <AuthContext.Provider value={{ user, loading, login, register, googleLogin, logout, demoLogin, demoGuestLogin }}>
       {children}
     </AuthContext.Provider>
   );

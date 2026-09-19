@@ -580,7 +580,7 @@ def seed_dummy_guests(app=None):
 
 
 def rebalance_host_properties(app=None):
-    """Ensure Sarthak owns exactly 3 properties, and other hosts own their respective portfolios."""
+    """Ensure Sarthak owns exactly 3 properties, Rohan owns 4, and other properties are distributed across named hosts including low-trust listings."""
     from models import db, User, Property, PropertyImage, Booking, Guest
     from datetime import date, timedelta
     import random
@@ -591,50 +591,51 @@ def rebalance_host_properties(app=None):
 
     try:
         today = date.today()
-        # 1. Find or create Sarthak User (strictly prioritizing sarthakskale27@gmail.com)
-        sarthak = User.query.filter_by(email='sarthakskale27@gmail.com').first()
-        if not sarthak:
-            sarthak = User.query.filter(User.email.ilike('%sarthak%')).first()
-        if not sarthak:
-            sarthak = User.query.filter_by(email='host@hostboost.ai').first()
+        default_pwd = bcrypt.generate_password_hash('password123').decode('utf-8')
 
-        if not sarthak:
-            pw_hash = bcrypt.generate_password_hash('password123').decode('utf-8')
-            sarthak = User(
-                name='Sarthak Kale',
-                email='sarthakskale27@gmail.com',
-                password_hash=pw_hash,
-                phone='+91 98230 11223',
-                role='host',
-                is_verified_host=True
-            )
-            db.session.add(sarthak)
-            db.session.flush()
-        else:
-            sarthak.role = 'host'
-            sarthak.is_verified_host = True
-            # Also ensure any other Sarthak accounts are verified hosts
-            for u in User.query.filter(User.email.ilike('%sarthak%')).all():
+        # ── 1. Create or fetch all distinct named hosts ───────────────────────
+        HOSTS_CONFIG = [
+            ('sarthakskale27@gmail.com', 'Sarthak Kale',      '+91 98230 11223'),
+            ('host@hostboost.ai',        'Sarthak Kale',      '+91 98230 11223'),
+            ('host@trustora.ai',         'Rohan Mehta',       '+91 98200 11222'),
+            ('rohan.mehta@gmail.com',    'Rohan Mehta',       '+91 98200 11222'),
+            ('vikram.host@trustora.ai',  'Vikram Singhania',  '+91 98190 22334'),
+            ('deepa.host@trustora.ai',   'Deepa Nair',        '+91 98470 33445'),
+            ('kavya.host@trustora.ai',   'Kavya Verma',       '+91 98330 44556'),
+            ('arun.host@trustora.ai',    'Arun Joshi',        '+91 98110 55667'),
+            ('rajesh.host@trustora.ai',  'Rajesh Gupta (Budget Stays)', '+91 98100 66778'),
+        ]
+
+        host_users = {}
+        for email, name, phone in HOSTS_CONFIG:
+            u = User.query.filter_by(email=email).first()
+            if not u:
+                u = User(
+                    name=name,
+                    email=email,
+                    password_hash=default_pwd,
+                    phone=phone,
+                    role='host',
+                    is_verified_host=True
+                )
+                db.session.add(u)
+                db.session.flush()
+            else:
                 u.role = 'host'
                 u.is_verified_host = True
-            db.session.flush()
+                u.name = name
+                db.session.flush()
+            host_users[email] = u
 
-        # 2. Find Rohan Mehta
-        rohan = User.query.filter_by(email='host@trustora.ai').first()
-        if not rohan:
-            pw_hash = bcrypt.generate_password_hash('password123').decode('utf-8')
-            rohan = User(
-                name='Rohan Mehta',
-                email='host@trustora.ai',
-                password_hash=pw_hash,
-                phone='+91 98200 11222',
-                role='host',
-                is_verified_host=True
-            )
-            db.session.add(rohan)
-            db.session.flush()
+        sarthak = host_users.get('sarthakskale27@gmail.com') or host_users.get('host@hostboost.ai')
+        rohan   = host_users.get('host@trustora.ai')
+        vikram  = host_users.get('vikram.host@trustora.ai')
+        deepa   = host_users.get('deepa.host@trustora.ai')
+        kavya   = host_users.get('kavya.host@trustora.ai')
+        arun    = host_users.get('arun.host@trustora.ai')
+        rajesh  = host_users.get('rajesh.host@trustora.ai')
 
-        # 3. Create or update Sarthak's 3 properties
+        # ── 2. Curate Sarthak's 3 Luxury Properties ───────────────────────────
         sarthak_props_specs = [
             {
                 'name': "Sarthak's Heritage Sanctuary & Beachfront Villa",
@@ -659,15 +660,12 @@ def rebalance_host_properties(app=None):
             }
         ]
 
-        # Reset any existing properties currently assigned to Sarthak to avoid overflow
+        # Reset old overflowing properties from Sarthak
         existing_s_props = Property.query.filter_by(user_id=sarthak.id).all()
         for p in existing_s_props:
             if not any(spec['name'] in p.name for spec in sarthak_props_specs):
-                p.user_id = rohan.id
+                p.user_id = vikram.id
         db.session.flush()
-
-        channels = ['Airbnb', 'Booking.com', 'WhatsApp Concierge', 'Trustora Direct', 'Direct Booking']
-        guests = Guest.query.limit(10).all()
 
         for spec in sarthak_props_specs:
             p = Property.query.filter_by(name=spec['name']).first()
@@ -691,25 +689,127 @@ def rebalance_host_properties(app=None):
                 )
                 db.session.add(p)
                 db.session.flush()
-
-                p_img = PropertyImage(
-                    property_id=p.id,
-                    image_url=spec['img'],
-                    caption="Main Front View",
-                    is_primary=True,
-                    overall_score=95
-                )
-                db.session.add(p_img)
+                db.session.add(PropertyImage(property_id=p.id, image_url=spec['img'], caption="Main Front View", is_primary=True, overall_score=95))
             else:
                 p.user_id = sarthak.id
                 p.base_price = spec['base_price']
                 p.trust_score = spec['trust_score']
                 db.session.flush()
 
-            # Ensure bookings for Sarthak's properties
-            if not p.bookings or len(p.bookings) < 4:
-                for idx, ch in enumerate(channels):
-                    cin = today - timedelta(days=(idx + 1) * 8)
+        # ── 3. Distribute Portfolios across Named Hosts ───────────────────────
+        # A. Rohan Mehta (Exactly 4 properties in Goa & Manali)
+        rohan_prop_names = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet']
+        for name in rohan_prop_names:
+            p = Property.query.filter_by(name=name).first()
+            if p:
+                p.user_id = rohan.id
+                db.session.flush()
+
+        # B. Vikram Singhania (4 Rajasthan & Heritage properties)
+        vikram_prop_names = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli']
+        for name in vikram_prop_names:
+            p = Property.query.filter_by(name=name).first()
+            if p:
+                p.user_id = vikram.id
+                db.session.flush()
+
+        # C. Deepa Nair (4 Kerala Backwaters & Plantation properties)
+        deepa_prop_names = ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay']
+        for name in deepa_prop_names:
+            p = Property.query.filter_by(name=name).first()
+            if p:
+                p.user_id = deepa.id
+                db.session.flush()
+
+        # D. Kavya Verma (4 Metropolitan Urban & Coastal properties)
+        kavya_prop_names = ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel']
+        for name in kavya_prop_names:
+            p = Property.query.filter_by(name=name).first()
+            if p:
+                p.user_id = kavya.id
+                db.session.flush()
+
+        # E. Arun Joshi (Mountain & Hill Retreats)
+        arun_prop_names = ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla', 'Honey Valley Coffee Estate', 'Ladakh Mountain Homestay', 'Solang Valley Homestay', 'Lake Pichola Palace View']
+        for name in arun_prop_names:
+            p = Property.query.filter_by(name=name).first()
+            if p:
+                p.user_id = arun.id
+                db.session.flush()
+
+        # ── 4. Add Lower Trust Score Listings Under Rajesh Gupta ───────────────
+        low_trust_specs = [
+            {
+                'name': 'Bazaar Backstreet Budget Lodge',
+                'city': 'Delhi', 'state': 'Delhi', 'address': 'Chandni Chowk Gali, Old Delhi',
+                'property_type': 'guesthouse', 'base_price': 1800.0, 'total_rooms': 2, 'total_bathrooms': 1, 'max_guests': 3,
+                'trust_score': 58, 'neighborhood_vibe': 'High ambient street noise, congested narrow access lane, vibrant street food hub',
+                'desc': 'Budget accommodation in the heart of Old Delhi. Note: Street noise audible during peak bazaar hours, shared water geyser.',
+                'img': 'https://images.unsplash.com/photo-1544621401-5e3d4937bef3?w=800'
+            },
+            {
+                'name': 'Kasol Valley Unverified Camp',
+                'city': 'Kasol', 'state': 'Himachal Pradesh', 'address': 'Challal Trail, Kasol',
+                'property_type': 'camp', 'base_price': 2200.0, 'total_rooms': 3, 'total_bathrooms': 2, 'max_guests': 6,
+                'trust_score': 63, 'neighborhood_vibe': 'Riverbank forest area. Steep 25-minute unpaved walking trail from main road.',
+                'desc': 'Rustic camping experience by the river. Notice: Seasonal power cuts, unpaved approach trail unsuitable for heavy luggage.',
+                'img': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'
+            },
+            {
+                'name': 'Highway Transit Inn & Diner',
+                'city': 'Jaipur', 'state': 'Rajasthan', 'address': 'NH-48 Highway Bypass, Jaipur',
+                'property_type': 'motel', 'base_price': 2500.0, 'total_rooms': 4, 'total_bathrooms': 3, 'max_guests': 8,
+                'trust_score': 68, 'neighborhood_vibe': 'Major highway corridor. Continuous vehicle traffic, no pedestrian paths.',
+                'desc': 'Overnight highway stop for road-trippers. Note: Moderate highway transit noise, elevator under maintenance.',
+                'img': 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800'
+            },
+            {
+                'name': 'Paharganj Backpacker Haveli',
+                'city': 'Delhi', 'state': 'Delhi', 'address': 'Main Bazaar Road, Paharganj, New Delhi',
+                'property_type': 'hostel', 'base_price': 1500.0, 'total_rooms': 5, 'total_bathrooms': 3, 'max_guests': 10,
+                'trust_score': 65, 'neighborhood_vibe': 'Bustling backpacker quarter near New Delhi Railway Station. High foot traffic.',
+                'desc': 'Affordable dorms and rooms for budget backpackers. Note: Wi-Fi speeds vary, shared common washrooms on 2nd floor.',
+                'img': 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'
+            }
+        ]
+
+        for spec in low_trust_specs:
+            p = Property.query.filter_by(name=spec['name']).first()
+            if not p:
+                p = Property(
+                    user_id=rajesh.id,
+                    name=spec['name'],
+                    property_type=spec['property_type'],
+                    description=spec['desc'],
+                    address=spec['address'],
+                    city=spec['city'],
+                    state=spec['state'],
+                    country='India',
+                    zip_code='110006',
+                    base_price=spec['base_price'],
+                    total_rooms=spec['total_rooms'],
+                    total_bathrooms=spec['total_bathrooms'],
+                    max_guests=spec['max_guests'],
+                    trust_score=spec['trust_score'],
+                    neighborhood_vibe=spec['neighborhood_vibe']
+                )
+                db.session.add(p)
+                db.session.flush()
+                db.session.add(PropertyImage(property_id=p.id, image_url=spec['img'], caption="Main View", is_primary=True, overall_score=spec['trust_score']))
+            else:
+                p.user_id = rajesh.id
+                p.trust_score = spec['trust_score']
+                p.base_price = spec['base_price']
+                db.session.flush()
+
+        # ── 5. Ensure Bookings for Sarthak & Rohan's properties ───────────────
+        channels = ['Airbnb', 'Booking.com', 'WhatsApp Concierge', 'Trustora Direct', 'Direct Booking']
+        guests = Guest.query.limit(10).all()
+
+        for p in Property.query.filter((Property.user_id == sarthak.id) | (Property.user_id == rohan.id)).all():
+            if not p.bookings or len(p.bookings) < 3:
+                for idx, ch in enumerate(channels[:3]):
+                    cin = today - timedelta(days=(idx + 1) * 7)
                     cout = cin + timedelta(days=3)
                     g = guests[idx % len(guests)] if guests else None
                     bk = Booking(
@@ -729,7 +829,7 @@ def rebalance_host_properties(app=None):
                     db.session.add(bk)
 
         db.session.commit()
-        print(f"[rebalance_host_properties] Sarthak (ID: {sarthak.id}) now owns EXACTLY 3 luxury properties!")
+        print(f"[rebalance_host_properties] Success! Sarthak owns 3 properties, Rohan owns 4 properties, and remaining properties & low-trust listings are distributed among Vikram, Deepa, Kavya, Arun, and Rajesh.")
     except Exception as e:
         db.session.rollback()
         print(f"[rebalance_host_properties] Error: {e}")

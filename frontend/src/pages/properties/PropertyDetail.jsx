@@ -19,6 +19,22 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
   const [reportDetails, setReportDetails] = useState('');
   const [reportSubmitting, setReportSubmitting] = useState(false);
 
+  // Dynamic Reservation State
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [checkIn, setCheckIn] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 4);
+    return d.toISOString().split('T')[0];
+  });
+  const [checkOut, setCheckOut] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [guestCount, setGuestCount] = useState(2);
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+
   // Personalized Match state
   const [tripType, setTripType] = useState('Family');
   const [selectedPrefs, setSelectedPrefs] = useState(['Quiet', 'Beach', 'Family friendly']);
@@ -48,6 +64,37 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
       setReportModalOpen(false);
     } finally {
       setReportSubmitting(false);
+    }
+  };
+
+  const handleConfirmBooking = async (e) => {
+    e.preventDefault();
+    setBookingLoading(true);
+    try {
+      const cinDate = new Date(checkIn);
+      const coutDate = new Date(checkOut);
+      const diffDays = Math.max(1, Math.round((coutDate - cinDate) / (1000 * 60 * 60 * 24)));
+      const totalAmt = (property.base_price || 5000) * diffDays;
+
+      const res = await api.post('/bookings', {
+        property_id: property.id,
+        check_in: checkIn,
+        check_out: checkOut,
+        guests_count: guestCount,
+        total_amount: totalAmt,
+        channel: 'Trustora Direct'
+      });
+
+      const ref = res.data?.booking?.booking_reference || 'TR-PROT';
+      showToast(`🎉 Reservation confirmed! Ref: ${ref}`, 'success');
+      setBookingModalOpen(false);
+      if (onNavigateTab) {
+        onNavigateTab('my-bookings');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Booking reservation failed. Check details.', 'error');
+    } finally {
+      setBookingLoading(false);
     }
   };
 
@@ -290,13 +337,126 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
           </div>
 
           <button
-            onClick={() => showToast('Booking reservation initiated (DEMO MODE).', 'success')}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white font-black text-xs shadow-lg transition-all cursor-pointer"
+            onClick={() => setBookingModalOpen(true)}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white font-black text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            Reserve with Trustora Protection
+            <ShieldCheck className="w-4 h-4" /> Reserve with Trustora Protection
           </button>
         </div>
       </div>
+
+      {/* Dynamic Reservation Modal */}
+      {bookingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Reserve Stay</h3>
+                  <p className="text-xs text-slate-400">{property.name} ({property.city})</p>
+                </div>
+              </div>
+              <button onClick={() => setBookingModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmBooking} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Check-In Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={checkIn}
+                    onChange={e => setCheckIn(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Check-Out Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={checkOut}
+                    onChange={e => setCheckOut(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Number of Guests</label>
+                <select
+                  value={guestCount}
+                  onChange={e => setGuestCount(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white"
+                >
+                  {[...Array(property.max_guests || 6).keys()].map(i => (
+                    <option key={i+1} value={i+1}>{i+1} {i === 0 ? 'Guest' : 'Guests'}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tariff Breakdown */}
+              {(() => {
+                const cinD = new Date(checkIn);
+                const coutD = new Date(checkOut);
+                const nts = Math.max(1, Math.round((coutD - cinD) / (1000 * 60 * 60 * 24)) || 1);
+                const baseP = property.base_price || 5000;
+                const total = baseP * nts;
+                return (
+                  <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800/90 space-y-2 text-xs">
+                    <div className="flex justify-between text-slate-300">
+                      <span>₹{baseP.toLocaleString()} × {nts} {nts === 1 ? 'night' : 'nights'}</span>
+                      <span className="font-bold">₹{total.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-400 text-[11px]">
+                      <span>Trustora Authenticity Guarantee</span>
+                      <span className="font-bold">FREE (₹0)</span>
+                    </div>
+                    <div className="border-t border-slate-800 pt-2 flex justify-between text-white font-black text-sm">
+                      <span>Total Amount</span>
+                      <span className="text-emerald-400">₹{total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Instant confirmation with 100% money-back Trustora guarantee.</span>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBookingModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bookingLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white text-xs font-black shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {bookingLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Confirming...
+                    </>
+                  ) : (
+                    'Confirm & Reserve Stay'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Trust Report Drawer Modal */}
       <TrustReportModal

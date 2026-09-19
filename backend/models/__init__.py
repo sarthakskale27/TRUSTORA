@@ -266,6 +266,24 @@ class Booking(db.Model):
                 'base_price': self.property.base_price
             }
 
+        # Resolve guest details accurately from either Guest table or User table
+        guest_obj = None
+        guest_name = 'Guest'
+        guest_email = None
+        guest_phone = None
+        if self.guest:
+            guest_obj = self.guest.to_dict()
+            guest_name = self.guest.name
+            guest_email = self.guest.email
+            guest_phone = self.guest.phone
+        else:
+            u = User.query.get(self.guest_id)
+            if u:
+                guest_obj = u.to_dict()
+                guest_name = u.name
+                guest_email = u.email
+                guest_phone = u.phone
+
         return {
             'id': self.id,
             'booking_reference': self.booking_reference,
@@ -274,8 +292,10 @@ class Booking(db.Model):
             'property_name': self.property.name if self.property else 'Luxury Stay',
             'property_city': self.property.city if self.property else 'India',
             'property_image': img_url,
-            'guest': self.guest.to_dict() if self.guest else None,
-            'guest_name': self.guest.name if self.guest else 'Guest',
+            'guest': guest_obj,
+            'guest_name': guest_name,
+            'guest_email': guest_email,
+            'guest_phone': guest_phone,
             'check_in': self.check_in.strftime('%Y-%m-%d') if self.check_in else None,
             'check_out': self.check_out.strftime('%Y-%m-%d') if self.check_out else None,
             'total_nights': self.total_nights,

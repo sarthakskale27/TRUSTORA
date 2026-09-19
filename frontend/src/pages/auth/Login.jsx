@@ -165,17 +165,38 @@ export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
                   <>
                     <button
                       type="button"
-                      onClick={() => { setEmail('sarthakskale27@gmail.com'); setPassword('password123'); }}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-bold text-indigo-300 transition-all cursor-pointer"
+                      onClick={() => { setEmail('host@trustora.ai'); setPassword('password123'); }}
+                      className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[10px] font-bold text-indigo-300 transition-all cursor-pointer"
                     >
-                      Sarthak (sarthakskale27@gmail.com)
+                      Rohan (4 Stays)
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setEmail('host@trustora.ai'); setPassword('password123'); }}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-bold text-indigo-300 transition-all cursor-pointer"
+                      onClick={() => { setEmail('sarthakskale27@gmail.com'); setPassword('password123'); }}
+                      className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[10px] font-bold text-indigo-300 transition-all cursor-pointer"
                     >
-                      Rohan (host@trustora.ai)
+                      Sarthak (3 Stays)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('vikram.host@trustora.ai'); setPassword('password123'); }}
+                      className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[10px] font-bold text-indigo-300 transition-all cursor-pointer"
+                    >
+                      Vikram (Heritage)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('deepa.host@trustora.ai'); setPassword('password123'); }}
+                      className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[10px] font-bold text-indigo-300 transition-all cursor-pointer"
+                    >
+                      Deepa (Kerala)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('rajesh.host@trustora.ai'); setPassword('password123'); }}
+                      className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] font-bold text-rose-300 transition-all cursor-pointer"
+                    >
+                      Rajesh (Low Trust Stays)
                     </button>
                   </>
                 ) : (

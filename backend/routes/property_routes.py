@@ -1,16 +1,35 @@
 import os
 import uuid
 from flask import Blueprint, request, jsonify
-from models import db, Property, Room, Amenity, PropertyImage, Review
+import jwt
+from config import Config
+from models import db, Property, Room, Amenity, PropertyImage, Review, User
 from routes.auth_routes import token_required
 from services.trust_service import TrustService
 
 property_bp = Blueprint('properties', __name__)
 
 @property_bp.route('', methods=['GET'])
-@token_required
-def get_properties(current_user):
-    properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
+def get_properties():
+    # If token is provided, filter by host user_id, else return all properties
+    auth_header = request.headers.get('Authorization')
+    current_user = None
+    if auth_header:
+        parts = auth_header.split(' ')
+        if len(parts) == 2 and parts[0].lower() == 'bearer':
+            try:
+                payload = jwt.decode(parts[1], Config.JWT_SECRET_KEY, algorithms=['HS256'])
+                current_user = User.query.get(payload.get('user_id'))
+            except Exception:
+                pass
+
+    if current_user and current_user.role == 'host':
+        properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
+        if not properties:
+            properties = Property.query.order_by(Property.created_at.desc()).all()
+    else:
+        properties = Property.query.order_by(Property.created_at.desc()).all()
+
     return jsonify({
         'count': len(properties),
         'properties': [p.to_dict(include_details=True) for p in properties]
@@ -23,7 +42,7 @@ def get_property(property_id):
 
 @property_bp.route('/<int:property_id>/reviews', methods=['GET'])
 def get_property_reviews(property_id):
-    reviews = Review.query.filter_by(property_id=property_id).order_by(Review.review_date.desc()).all()
+    reviews = Review.query.filter_by(property_id=property_id).order_by(Review.created_at.desc()).all()
     return jsonify({'reviews': [r.to_dict() for r in reviews]}), 200
 
 @property_bp.route('', methods=['POST'])
@@ -45,48 +64,16 @@ def create_property(current_user):
         description=data.get('description', ''),
         address=address,
         city=city,
-        state=data.get('state', 'State'),
+        state=data.get('state', 'Goa'),
         country=data.get('country', 'India'),
-        zip_code=data.get('pincode', '403515'),
+        zip_code=data.get('pincode') or data.get('zip_code', '403515'),
         base_price=base_price,
         total_rooms=int(data.get('rooms_count', 2)),
         total_bathrooms=int(data.get('bathrooms_count', 2)),
         max_guests=int(data.get('max_guests', 4)),
-        neighborhood_vibe=vibe,
-        trust_score=94
+        neighborhood_vibe=vibe
     )
     db.session.add(new_prop)
-    db.session.flush()
-
-    # Photos
-    photos = data.get('photos', [])
-    if photos:
-        for idx, p in enumerate(photos):
-            img = PropertyImage(
-                property_id=new_prop.id,
-                image_url=p.get('url', 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914'),
-                caption=p.get('caption', 'View'),
-                is_primary=p.get('is_hero', idx == 0),
-                overall_score=92
-            )
-            db.session.add(img)
-    else:
-        img = PropertyImage(
-            property_id=new_prop.id,
-            image_url='https://images.unsplash.com/photo-1580587771525-78b9dba3b914',
-            caption='Exterior',
-            is_primary=True,
-            overall_score=92
-        )
-        db.session.add(img)
-
     db.session.commit()
-    return jsonify({'message': 'Property created', 'property': new_prop.to_dict(include_details=True)}), 201
-
-@property_bp.route('/<int:property_id>', methods=['DELETE'])
-@token_required
-def delete_property(current_user, property_id):
-    prop = Property.query.filter_by(id=property_id, user_id=current_user.id).first_or_404()
-    db.session.delete(prop)
-    db.session.commit()
-    return jsonify({'message': 'Property deleted'}), 200
+    
+    return jsonify({'message': 'Property registered successfully with Trust Intelligence', 'property': new_prop.to_dict()}), 201

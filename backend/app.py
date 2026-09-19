@@ -23,12 +23,12 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     
     # Enable CORS for all origins in production and development
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
     
     # Initialize Database
     db.init_app(app)
     
-    # Register Blueprints
+    # Register Blueprints with /api prefix
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(property_bp, url_prefix='/api/properties')
     app.register_blueprint(booking_bp, url_prefix='/api/bookings')
@@ -40,6 +40,19 @@ def create_app(config_class=Config):
     app.register_blueprint(guest_bp, url_prefix='/api/guest')
     app.register_blueprint(trust_bp, url_prefix='/api/trust')
 
+    # Also register root prefixes as aliases so calls without /api never 404
+    app.register_blueprint(auth_bp, url_prefix='/auth', name='auth_alt')
+    app.register_blueprint(property_bp, url_prefix='/properties', name='properties_alt')
+    app.register_blueprint(booking_bp, url_prefix='/bookings', name='bookings_alt')
+    app.register_blueprint(pricing_bp, url_prefix='/pricing', name='pricing_alt')
+    app.register_blueprint(ai_bp, url_prefix='/ai', name='ai_alt')
+    app.register_blueprint(chat_bp, url_prefix='/chat', name='chat_alt')
+    app.register_blueprint(analytics_bp, url_prefix='/analytics', name='analytics_alt')
+    app.register_blueprint(notification_bp, url_prefix='/notifications', name='notifications_alt')
+    app.register_blueprint(guest_bp, url_prefix='/guest', name='guest_alt')
+    app.register_blueprint(trust_bp, url_prefix='/trust', name='trust_alt')
+
+    @app.route('/health', methods=['GET'])
     @app.route('/api/health', methods=['GET'])
     def health_check():
         return jsonify({

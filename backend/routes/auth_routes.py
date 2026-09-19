@@ -176,8 +176,15 @@ def login():
 
     user = User.query.filter_by(email=email).first()
     
-    # Universal fallback: if user does not exist yet, auto-create on demand!
-    if not user:
+    # If user exists, sync role if specified from portal
+    if user:
+        if role and role in ('host', 'guest') and role != user.role:
+            user.role = role
+            if role == 'host':
+                user.is_verified_host = True
+            db.session.commit()
+    else:
+        # Universal fallback: if user does not exist yet, auto-create on demand!
         name = email.split('@')[0].replace('.', ' ').title()
         role_guess = 'host' if 'host' in email else ('guest' if 'guest' in email or 'priya' in email else role)
         pw_hash = bcrypt.generate_password_hash(password or 'password123').decode('utf-8')

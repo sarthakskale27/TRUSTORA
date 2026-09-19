@@ -60,7 +60,8 @@ def create_app(config_class=Config):
             'service': 'Trustora Trust Intelligence Backend',
             'tagline': "Don't just book what looks good. Book what you can trust.",
             'database': 'connected',
-            'version': '3.0.0'
+            'version': '3.1.0',
+            'features': ['dynamic_multi_host', 'deduplicated_guest_bookings', 'low_trust_budget_stays']
         }), 200
 
     @app.route('/api/seed', methods=['POST', 'GET'])

@@ -50,11 +50,23 @@ const GuestApp = () => {
   const [activeTab, setActiveTab]           = useState('guest-home');
   const [selectedPropertyId, setSelId]     = useState(null);
   const [comparePropertyIds, setCompareIds] = useState([]);
+  // Each time user navigates to my-bookings (especially after a payment),
+  // bump this key so MyBookings unmounts/remounts and re-fetches fresh data
+  const [bookingsRefreshKey, setBookingsRefreshKey] = useState(0);
 
   const handleOpenCompare = (ids) => {
     setCompareIds(ids);
     setSelId(null);
     setActiveTab('compare');
+  };
+
+  // Central tab navigator — always increments bookingsRefreshKey when going to my-bookings
+  const navigateTab = (tab) => {
+    setSelId(null);
+    if (tab === 'my-bookings') {
+      setBookingsRefreshKey(k => k + 1);
+    }
+    setActiveTab(tab);
   };
 
   const renderView = () => {
@@ -63,28 +75,29 @@ const GuestApp = () => {
         <PropertyDetail
           propertyId={selectedPropertyId}
           onBack={() => setSelId(null)}
-          onNavigateTab={(tab) => { setSelId(null); setActiveTab(tab); }}
+          onNavigateTab={navigateTab}
         />
       );
     }
 
     switch (activeTab) {
-      case 'guest-home':      return <GuestHome onNavigate={setActiveTab} onSelectProperty={setSelId} />;
+      case 'guest-home':      return <GuestHome onNavigate={navigateTab} onSelectProperty={setSelId} />;
       case 'plan-trip':       return <PlanTrip onSelectProperty={setSelId} onCompare={handleOpenCompare} />;
-      case 'compare':         return <CompareProperties selectedIds={comparePropertyIds} onSelectProperty={setSelId} onNavigate={setActiveTab} />;
+      case 'compare':         return <CompareProperties selectedIds={comparePropertyIds} onSelectProperty={setSelId} onNavigate={navigateTab} />;
       case 'near-me':         return <NearMe onSelectProperty={setSelId} />;
       case 'browse':          return <PlanTrip onSelectProperty={setSelId} onCompare={handleOpenCompare} />;
-      case 'my-bookings':     return <MyBookings />;
+      // key={bookingsRefreshKey} forces a full remount → fresh useEffect fetch every time
+      case 'my-bookings':     return <MyBookings key={bookingsRefreshKey} />;
       case 'wishlist':        return <Wishlist onSelectProperty={setSelId} />;
       case 'my-reviews':      return <MyReviews />;
       case 'concierge-guest': return <GuestConcierge />;
       case 'guest-profile':   return <GuestProfile />;
-      default:                return <GuestHome onNavigate={setActiveTab} onSelectProperty={setSelId} />;
+      default:                return <GuestHome onNavigate={navigateTab} onSelectProperty={setSelId} />;
     }
   };
 
   return (
-    <GuestLayout activeTab={activeTab} setActiveTab={(tab) => { setSelId(null); setActiveTab(tab); }}>
+    <GuestLayout activeTab={activeTab} setActiveTab={navigateTab}>
       {renderView()}
     </GuestLayout>
   );

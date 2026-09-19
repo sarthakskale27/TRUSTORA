@@ -8,11 +8,17 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 const STATUS_STYLES = {
-  confirmed: { color: 'text-emerald-400', bg: 'bg-emerald-950/40 border-emerald-500/30', label: 'Confirmed Stay' },
-  checked_in: { color: 'text-teal-400', bg: 'bg-teal-950/40 border-teal-500/30', label: 'Currently Staying' },
+  confirmed: { color: 'text-emerald-400', bg: 'bg-emerald-950/40 border-emerald-500/30', label: 'Confirmed ✅' },
+  checked_in: { color: 'text-teal-400', bg: 'bg-teal-950/40 border-teal-500/30', label: 'Currently Staying 🏨' },
   checked_out: { color: 'text-slate-300', bg: 'bg-slate-900/60 border-slate-700', label: 'Completed Stay' },
   completed: { color: 'text-slate-300', bg: 'bg-slate-900/60 border-slate-700', label: 'Completed Stay' },
   cancelled: { color: 'text-rose-400', bg: 'bg-rose-950/40 border-rose-500/30', label: 'Cancelled & Refunded' },
+};
+
+const PAYMENT_BADGE = {
+  paid:    { label: '✅ Payment Done', cls: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' },
+  refunded:{ label: '↩ Refunded',     cls: 'bg-rose-500/10 border-rose-500/20 text-rose-400' },
+  pending: { label: '⏳ Payment Pending', cls: 'bg-amber-500/10 border-amber-500/30 text-amber-400' },
 };
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800';
@@ -24,17 +30,25 @@ export const MyBookings = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
 
-  useEffect(() => {
-    const processBookings = (rawList) => {
-      const seen = new Set();
-      return rawList.filter(b => {
-        const key = `${b.property_id || b.property?.id}_${b.check_in}_${b.check_out}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    };
+  const processBookings = (rawList) => {
+    const seen = new Set();
+    // Sort newest first so the just-confirmed booking appears at top
+    const sorted = [...rawList].sort((a, b) => {
+      const da = new Date(a.created_at || a.check_in || 0);
+      const db = new Date(b.created_at || b.check_in || 0);
+      return db - da;
+    });
+    return sorted.filter(b => {
+      const key = `${b.property_id || b.property?.id}_${b.check_in}_${b.check_out}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
 
+  useEffect(() => {
+    setLoading(true);
+    // Always fetch fresh from server — component is always freshly mounted
     api.get('/bookings/my-bookings')
       .then(r => setBookings(processBookings(r.data.bookings || [])))
       .catch(() => {
@@ -45,6 +59,7 @@ export const MyBookings = () => {
       })
       .finally(() => setLoading(false));
   }, []);
+
 
   const now = new Date();
 
@@ -158,21 +173,40 @@ export const MyBookings = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {displayed.map(b => {
+          {displayed.map((b, idx) => {
             const prop = b.property || {};
             const img = b.property_image || prop.primary_image || prop.photos?.[0]?.url || DEFAULT_IMAGE;
             const style = STATUS_STYLES[b.status] || STATUS_STYLES.confirmed;
             const isCancelled = b.status === 'cancelled';
+            const pmtBadge = PAYMENT_BADGE[b.payment_status] || PAYMENT_BADGE.paid;
+            // "Just Booked" = created in last 30 minutes OR first item and confirmed
+            const isJustBooked = (b.status === 'confirmed' || b.status === 'checked_in') &&
+              (idx === 0 || (b.created_at && (Date.now() - new Date(b.created_at).getTime()) < 30 * 60 * 1000));
 
             return (
               <div
                 key={b.id || b.booking_reference}
-                className={`p-5 rounded-3xl border transition-all flex flex-col md:flex-row gap-5 shadow-xl ${
-                  isCancelled
+                className={`rounded-3xl border transition-all flex flex-col shadow-xl overflow-hidden ${
+                  isJustBooked
+                    ? 'border-emerald-500/60 shadow-emerald-500/10 ring-1 ring-emerald-500/20'
+                    : isCancelled
                     ? 'bg-slate-900/90 border-rose-500/30 hover:border-rose-500/50'
                     : 'bg-slate-900 border-slate-800 hover:border-emerald-500/40'
                 }`}
               >
+                {/* "Just Booked" top banner */}
+                {isJustBooked && (
+                  <div className="flex items-center justify-between px-5 py-2 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-emerald-500/30">
+                    <span className="text-[11px] font-black text-emerald-400 flex items-center gap-1.5">
+                      🎉 Booking Confirmed &amp; Payment Done!
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${pmtBadge.cls}`}>
+                      {pmtBadge.label}
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-5 flex flex-col md:flex-row gap-5">
                 {/* Image */}
                 <div className="relative w-full md:w-48 h-44 md:h-auto rounded-2xl overflow-hidden bg-slate-800 shrink-0">
                   <img
@@ -200,13 +234,18 @@ export const MyBookings = () => {
                   <div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[10px] font-mono font-bold text-slate-400 uppercase bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                             Ref: {b.booking_reference || 'TR-78291'}
                           </span>
                           <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                             {b.channel || 'Trustora Direct'}
                           </span>
+                          {!isJustBooked && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${pmtBadge.cls}`}>
+                              {pmtBadge.label}
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-base font-black text-white mt-1.5">{prop.name || b.property_name || 'Verified Luxury Stay'}</h3>
                         <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
@@ -274,6 +313,7 @@ export const MyBookings = () => {
                   </div>
                 </div>
               </div>
+            </div>
             );
           })}
         </div>

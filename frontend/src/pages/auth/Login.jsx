@@ -165,17 +165,17 @@ export const Login = ({ onSwitchToRegister, onBack, initialPortal }) => {
                   <>
                     <button
                       type="button"
+                      onClick={() => { setEmail('sarthakskale27@gmail.com'); setPassword('password123'); }}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-bold text-indigo-300 transition-all cursor-pointer"
+                    >
+                      Sarthak (sarthakskale27@gmail.com)
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => { setEmail('host@trustora.ai'); setPassword('password123'); }}
                       className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-bold text-indigo-300 transition-all cursor-pointer"
                     >
                       Rohan (host@trustora.ai)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setEmail('host@hostboost.ai'); setPassword('password123'); }}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-bold text-indigo-300 transition-all cursor-pointer"
-                    >
-                      Sarthak (host@hostboost.ai)
                     </button>
                   </>
                 ) : (

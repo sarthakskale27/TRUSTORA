@@ -18,12 +18,34 @@ def get_bookings(current_user):
         # User is a HOST, return bookings strictly for their properties
         email_lower = (current_user.email or '').lower()
         name_lower = (current_user.name or '').lower()
+
         is_sarthak = 'sarthak' in email_lower or 'hostboost' in email_lower or 'sarthak' in name_lower or current_user.id in (17, 18, 23, 24)
+        is_rohan   = 'rohan' in email_lower or email_lower == 'host@trustora.ai' or current_user.id == 1
+        is_vikram  = 'vikram' in email_lower
+        is_deepa   = 'deepa' in email_lower or 'restaurant' in email_lower
+        is_kavya   = 'kavya' in email_lower
+        is_arun    = 'arun' in email_lower
+        is_rajesh  = 'rajesh' in email_lower or 'budget' in email_lower or 'low' in email_lower
+
         if is_sarthak:
-            sarthak_user_ids = [u.id for u in User.query.filter((User.email.ilike('%sarthak%')) | (User.email.ilike('%hostboost%')) | (User.name.ilike('%sarthak%'))).all()]
-            if not sarthak_user_ids:
-                sarthak_user_ids = [current_user.id]
-            properties = Property.query.filter((Property.user_id.in_(sarthak_user_ids)) | (Property.name.ilike('%Sarthak%'))).all()
+            properties = Property.query.filter(Property.name.ilike('%Sarthak%')).all()
+        elif is_rohan:
+            rohan_names = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet']
+            properties = Property.query.filter(Property.name.in_(rohan_names)).all()
+        elif is_vikram:
+            vikram_names = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli']
+            properties = Property.query.filter(Property.name.in_(vikram_names)).all()
+        elif is_deepa:
+            deepa_names = ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay']
+            properties = Property.query.filter(Property.name.in_(deepa_names)).all()
+        elif is_kavya:
+            kavya_names = ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel']
+            properties = Property.query.filter(Property.name.in_(kavya_names)).all()
+        elif is_arun:
+            arun_names = ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla']
+            properties = Property.query.filter(Property.name.in_(arun_names)).all()
+        elif is_rajesh:
+            properties = Property.query.filter(Property.trust_score < 75).all()
         else:
             properties = Property.query.filter_by(user_id=current_user.id).all()
             
@@ -38,31 +60,39 @@ def get_bookings(current_user):
         bookings = query.limit(limit).all()
     else:
         bookings = query.all()
+
+    # Deduplicate host bookings
+    seen = set()
+    deduped = []
+    for b in bookings:
+        key = f"{b.property_id}_{b.check_in}_{b.check_out}_{b.guest_id}"
+        if key not in seen:
+            seen.add(key)
+            deduped.append(b)
         
     return jsonify({
-        'count': len(bookings),
-        'bookings': [b.to_dict() for b in bookings]
+        'count': len(deduped),
+        'bookings': [b.to_dict() for b in deduped]
     }), 200
 
 @booking_bp.route('/my-bookings', methods=['GET'])
 @token_required
 def get_my_bookings(current_user):
-    """Guest-specific bookings endpoint with auto-fallback to guest email."""
+    """Guest-specific bookings endpoint with auto-deduplication."""
     # 1. Query by current_user.id and Guest ID
     guest_ids = [current_user.id]
     g = Guest.query.filter_by(email=current_user.email).first()
     if g and g.id not in guest_ids:
         guest_ids.append(g.id)
 
-    bookings = Booking.query.filter(Booking.guest_id.in_(guest_ids)).order_by(Booking.check_in.desc()).all()
+    raw_bookings = Booking.query.filter(Booking.guest_id.in_(guest_ids)).order_by(Booking.check_in.desc()).all()
             
     # 2. If still empty, link starter rich trips across upcoming, current, completed, and cancelled
-    if not bookings:
+    if not raw_bookings:
         today = date.today()
         props = Property.query.limit(4).all()
         if props:
             sample_configs = [
-                # status, days_offset, nights, channel
                 ('confirmed', 5, 4, 'Trustora Direct'),
                 ('checked_in', -1, 3, 'Trustora Direct'),
                 ('checked_out', -25, 5, 'Airbnb'),
@@ -87,11 +117,20 @@ def get_my_bookings(current_user):
                 )
                 db.session.add(bk)
             db.session.commit()
-            bookings = Booking.query.filter(Booking.guest_id.in_(guest_ids)).order_by(Booking.check_in.desc()).all()
+            raw_bookings = Booking.query.filter(Booking.guest_id.in_(guest_ids)).order_by(Booking.check_in.desc()).all()
+
+    # 3. Clean Deduplication: Exactly ONE booking per hotel per check_in date
+    seen = set()
+    deduped = []
+    for b in raw_bookings:
+        key = f"{b.property_id}_{b.check_in}_{b.check_out}"
+        if key not in seen:
+            seen.add(key)
+            deduped.append(b)
 
     return jsonify({
-        'count': len(bookings),
-        'bookings': [b.to_dict() for b in bookings]
+        'count': len(deduped),
+        'bookings': [b.to_dict() for b in deduped]
     }), 200
 
 @booking_bp.route('', methods=['POST'])
@@ -133,6 +172,17 @@ def create_booking(current_user):
         db.session.add(g)
         db.session.flush()
     
+    # Prevent duplicate booking on exact same dates
+    existing = Booking.query.filter(
+        Booking.property_id == prop.id,
+        Booking.guest_id.in_([current_user.id, g.id]),
+        Booking.check_in == cin,
+        Booking.status != 'cancelled'
+    ).first()
+
+    if existing:
+        return jsonify({'message': 'Booking already confirmed', 'booking': existing.to_dict()}), 200
+
     new_booking = Booking(
         booking_reference=ref,
         property_id=prop.id,

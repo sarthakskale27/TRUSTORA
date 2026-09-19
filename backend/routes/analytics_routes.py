@@ -11,8 +11,14 @@ analytics_bp = Blueprint('analytics', __name__)
 @analytics_bp.route('/revenue', methods=['GET'])
 @token_required
     # Fetch all properties belonging strictly to this host
-    if 'sarthak' in (current_user.email or '').lower() or 'hostboost' in (current_user.email or '').lower() or 'sarthak' in (current_user.name or '').lower():
-        raw_props = Property.query.filter((Property.user_id == current_user.id) | (Property.name.ilike('%Sarthak%'))).order_by(Property.created_at.desc()).all()
+    email_lower = (current_user.email or '').lower()
+    name_lower = (current_user.name or '').lower()
+    is_sarthak = 'sarthak' in email_lower or 'hostboost' in email_lower or 'sarthak' in name_lower or current_user.id in (17, 18, 23, 24)
+    if is_sarthak:
+        sarthak_user_ids = [u.id for u in User.query.filter((User.email.ilike('%sarthak%')) | (User.email.ilike('%hostboost%')) | (User.name.ilike('%sarthak%'))).all()]
+        if not sarthak_user_ids:
+            sarthak_user_ids = [current_user.id]
+        raw_props = Property.query.filter((Property.user_id.in_(sarthak_user_ids)) | (Property.name.ilike('%Sarthak%'))).order_by(Property.created_at.desc()).all()
         seen = set()
         properties = []
         for p in raw_props:

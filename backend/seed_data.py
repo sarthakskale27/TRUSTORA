@@ -591,11 +591,12 @@ def rebalance_host_properties(app=None):
 
     try:
         today = date.today()
-        # 1. Find or create Sarthak User
-        sarthak_users = User.query.filter((User.email == 'sarthakskale27@gmail.com') | (User.email == 'host@hostboost.ai') | (User.email.ilike('%sarthak%'))).all()
-        sarthak = next((u for u in sarthak_users if u.email == 'sarthakskale27@gmail.com'), None)
-        if not sarthak and sarthak_users:
-            sarthak = sarthak_users[0]
+        # 1. Find or create Sarthak User (strictly prioritizing sarthakskale27@gmail.com)
+        sarthak = User.query.filter_by(email='sarthakskale27@gmail.com').first()
+        if not sarthak:
+            sarthak = User.query.filter(User.email.ilike('%sarthak%')).first()
+        if not sarthak:
+            sarthak = User.query.filter_by(email='host@hostboost.ai').first()
 
         if not sarthak:
             pw_hash = bcrypt.generate_password_hash('password123').decode('utf-8')
@@ -610,7 +611,10 @@ def rebalance_host_properties(app=None):
             db.session.add(sarthak)
             db.session.flush()
         else:
-            for u in sarthak_users:
+            sarthak.role = 'host'
+            sarthak.is_verified_host = True
+            # Also ensure any other Sarthak accounts are verified hosts
+            for u in User.query.filter(User.email.ilike('%sarthak%')).all():
                 u.role = 'host'
                 u.is_verified_host = True
             db.session.flush()

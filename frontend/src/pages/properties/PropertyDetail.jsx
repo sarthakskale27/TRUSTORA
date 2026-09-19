@@ -34,6 +34,11 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
   const [guestCount, setGuestCount] = useState(2);
   const [specialRequests, setSpecialRequests] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingStep, setBookingStep] = useState(1); // 1=details, 2=payment, 3=confirmed
+  const [paymentMethod, setPaymentMethod] = useState('upi');
+  const [upiId, setUpiId] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState(null);
 
   // Personalized Match state
   const [tripType, setTripType] = useState('Family');
@@ -67,36 +72,62 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
     }
   };
 
-  const handleConfirmBooking = async (e) => {
+  const calcNights = () => {
+    const cinDate = new Date(checkIn);
+    const coutDate = new Date(checkOut);
+    return Math.max(1, Math.round((coutDate - cinDate) / (1000 * 60 * 60 * 24)));
+  };
+
+  const calcTotal = () => {
+    if (!property) return 0;
+    return (property.base_price || 5000) * calcNights();
+  };
+
+  // Step 1 → Step 2: validate dates then go to payment
+  const handleProceedToPayment = (e) => {
     e.preventDefault();
-    setBookingLoading(true);
+    if (new Date(checkOut) <= new Date(checkIn)) {
+      showToast('Check-out must be after check-in.', 'error');
+      return;
+    }
+    setBookingStep(2);
+  };
+
+  // Step 2 → Step 3: simulate payment then create booking
+  const handlePayment = async (e) => {
+    e.preventDefault();
+    setPaymentLoading(true);
     try {
-      const cinDate = new Date(checkIn);
-      const coutDate = new Date(checkOut);
-      const diffDays = Math.max(1, Math.round((coutDate - cinDate) / (1000 * 60 * 60 * 24)));
-      const totalAmt = (property.base_price || 5000) * diffDays;
+      // Simulate payment processing for 1.5s
+      await new Promise(res => setTimeout(res, 1500));
 
       const res = await api.post('/bookings', {
         property_id: property.id,
         check_in: checkIn,
         check_out: checkOut,
         guests_count: guestCount,
-        total_amount: totalAmt,
+        total_amount: calcTotal(),
         channel: 'Trustora Direct'
       });
 
-      const ref = res.data?.booking?.booking_reference || 'TR-PROT';
-      showToast(`🎉 Reservation confirmed! Ref: ${ref}`, 'success');
-      setBookingModalOpen(false);
-      if (onNavigateTab) {
-        onNavigateTab('my-bookings');
-      }
+      const bk = res.data?.booking || {};
+      setConfirmedBooking(bk);
+      setBookingStep(3);
     } catch (err) {
-      showToast(err.response?.data?.error || 'Booking reservation failed. Check details.', 'error');
+      showToast(err.response?.data?.error || 'Payment failed. Please retry.', 'error');
     } finally {
-      setBookingLoading(false);
+      setPaymentLoading(false);
     }
   };
+
+  const handleCloseAndNavigate = () => {
+    setBookingModalOpen(false);
+    setBookingStep(1);
+    setConfirmedBooking(null);
+    if (onNavigateTab) onNavigateTab('my-bookings');
+  };
+
+
 
   if (loading) {
     return (
@@ -345,118 +376,330 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
         </div>
       </div>
 
-      {/* Dynamic Reservation Modal */}
+      {/* ── BOOKING MODAL (3-step) ── */}
       {bookingModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-white">Reserve Stay</h3>
-                  <p className="text-xs text-slate-400">{property.name} ({property.city})</p>
-                </div>
-              </div>
-              <button onClick={() => setBookingModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full shadow-2xl relative overflow-hidden">
 
-            <form onSubmit={handleConfirmBooking} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Check-In Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={checkIn}
-                    onChange={e => setCheckIn(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Check-Out Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={checkOut}
-                    onChange={e => setCheckOut(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500"
-                  />
-                </div>
+            {/* Step indicator bar */}
+            {bookingStep < 3 && (
+              <div className="flex items-center gap-0 border-b border-slate-800">
+                {['Booking Details', 'Payment', 'Confirmed'].map((label, idx) => (
+                  <div key={idx} className={`flex-1 py-3 text-center text-[10px] font-bold border-b-2 transition-all ${bookingStep === idx + 1 ? 'border-emerald-500 text-emerald-400' : bookingStep > idx + 1 ? 'border-teal-600 text-teal-400' : 'border-transparent text-slate-600'}`}>
+                    {idx + 1}. {label}
+                  </div>
+                ))}
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">Number of Guests</label>
-                <select
-                  value={guestCount}
-                  onChange={e => setGuestCount(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white"
-                >
-                  {[...Array(property.max_guests || 6).keys()].map(i => (
-                    <option key={i+1} value={i+1}>{i+1} {i === 0 ? 'Guest' : 'Guests'}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Tariff Breakdown */}
-              {(() => {
-                const cinD = new Date(checkIn);
-                const coutD = new Date(checkOut);
-                const nts = Math.max(1, Math.round((coutD - cinD) / (1000 * 60 * 60 * 24)) || 1);
-                const baseP = property.base_price || 5000;
-                const total = baseP * nts;
-                return (
-                  <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800/90 space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-300">
-                      <span>₹{baseP.toLocaleString()} × {nts} {nts === 1 ? 'night' : 'nights'}</span>
-                      <span className="font-bold">₹{total.toLocaleString()}</span>
+            <div className="p-6 sm:p-7">
+              {/* ── STEP 1: Booking Details ── */}
+              {bookingStep === 1 && (
+                <>
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <ShieldCheck className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-white">Reserve Stay</h3>
+                        <p className="text-xs text-slate-400">{property.name} · {property.city}</p>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-emerald-400 text-[11px]">
-                      <span>Trustora Authenticity Guarantee</span>
-                      <span className="font-bold">FREE (₹0)</span>
+                    <button onClick={() => { setBookingModalOpen(false); setBookingStep(1); }} className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleProceedToPayment} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1.5">Check-In Date</label>
+                        <input type="date" required value={checkIn} onChange={e => setCheckIn(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1.5">Check-Out Date</label>
+                        <input type="date" required value={checkOut} onChange={e => setCheckOut(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500 outline-none" />
+                      </div>
                     </div>
-                    <div className="border-t border-slate-800 pt-2 flex justify-between text-white font-black text-sm">
-                      <span>Total Amount</span>
-                      <span className="text-emerald-400">₹{total.toLocaleString()}</span>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">Number of Guests</label>
+                      <select value={guestCount} onChange={e => setGuestCount(Number(e.target.value))}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none">
+                        {[...Array(property.max_guests || 6).keys()].map(i => (
+                          <option key={i + 1} value={i + 1}>{i + 1} {i === 0 ? 'Guest' : 'Guests'}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Tariff Breakdown */}
+                    <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800/90 space-y-2 text-xs">
+                      <div className="flex justify-between text-slate-300">
+                        <span>₹{(property.base_price || 5000).toLocaleString()} × {calcNights()} {calcNights() === 1 ? 'night' : 'nights'}</span>
+                        <span className="font-bold">₹{((property.base_price || 5000) * calcNights()).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400">
+                        <span>Trustora Service Fee (0%)</span>
+                        <span className="font-bold text-emerald-400">FREE</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400">
+                        <span>Trustora Authenticity Guarantee</span>
+                        <span className="font-bold text-emerald-400">FREE</span>
+                      </div>
+                      <div className="border-t border-slate-800 pt-2 flex justify-between text-white font-black text-sm">
+                        <span>Total to Pay</span>
+                        <span className="text-emerald-400">₹{calcTotal().toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Host Contact */}
+                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3 text-xs">
+                      <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-white">Host Contact</p>
+                        <p className="text-slate-400">{property.owner_name || 'Verified Host'} · <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline">{property.phone || '+91 98200 12345'}</a></p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-1">
+                      <button type="button" onClick={() => { setBookingModalOpen(false); setBookingStep(1); }}
+                        className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer">
+                        Cancel
+                      </button>
+                      <button type="submit"
+                        className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white text-xs font-black shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                        Proceed to Payment →
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {/* ── STEP 2: Payment ── */}
+              {bookingStep === 2 && (
+                <>
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h3 className="text-base font-black text-white">Complete Payment</h3>
+                      <p className="text-xs text-slate-400">Pay securely via Trustora · {property.name}</p>
+                    </div>
+                    <button onClick={() => setBookingStep(1)} className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer text-xs font-semibold">
+                      ← Back
+                    </button>
+                  </div>
+
+                  {/* Amount Banner */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-teal-950/60 border border-emerald-500/30 flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Amount Due</p>
+                      <p className="text-2xl font-black text-emerald-400">₹{calcTotal().toLocaleString()}</p>
+                      <p className="text-[10px] text-slate-500">{calcNights()} nights · {checkIn} → {checkOut}</p>
+                    </div>
+                    <ShieldCheck className="w-10 h-10 text-emerald-500/40" />
+                  </div>
+
+                  <form onSubmit={handlePayment} className="space-y-4">
+                    {/* Payment Method Selector */}
+                    <div>
+                      <p className="text-xs font-bold text-slate-300 mb-2">Choose Payment Method</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'upi', label: 'UPI', icon: '📱' },
+                          { id: 'card', label: 'Credit/Debit Card', icon: '💳' },
+                          { id: 'netbanking', label: 'Net Banking', icon: '🏦' },
+                        ].map(m => (
+                          <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
+                            className={`p-3 rounded-xl border text-center text-xs font-bold transition-all cursor-pointer ${paymentMethod === m.id ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 bg-slate-950 text-slate-400 hover:border-slate-600'}`}>
+                            <div className="text-xl mb-1">{m.icon}</div>
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* UPI Fields */}
+                    {paymentMethod === 'upi' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-300 mb-1.5">UPI ID</label>
+                          <input type="text" placeholder="yourname@upi" value={upiId} onChange={e => setUpiId(e.target.value)} required
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500 outline-none" />
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                          <p className="font-bold text-slate-300">Or scan QR to pay:</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center text-2xl">🔳</div>
+                            <div>
+                              <p>Trustora Payments UPI</p>
+                              <p className="text-emerald-400 font-bold">trustora@upi</p>
+                              <p className="text-slate-500">Amount: ₹{calcTotal().toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Fields */}
+                    {paymentMethod === 'card' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-300 mb-1.5">Card Number</label>
+                          <input type="text" placeholder="1234 5678 9012 3456" maxLength={19}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500 outline-none" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-300 mb-1.5">Expiry (MM/YY)</label>
+                            <input type="text" placeholder="12/27" maxLength={5}
+                              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500 outline-none" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-300 mb-1.5">CVV</label>
+                            <input type="password" placeholder="•••" maxLength={4}
+                              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500 outline-none" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-300 mb-1.5">Name on Card</label>
+                          <input type="text" placeholder="Your full name"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-emerald-500 outline-none" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Net Banking */}
+                    {paymentMethod === 'netbanking' && (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1.5">Select Bank</label>
+                        <select className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none">
+                          <option>State Bank of India</option>
+                          <option>HDFC Bank</option>
+                          <option>ICICI Bank</option>
+                          <option>Axis Bank</option>
+                          <option>Kotak Mahindra Bank</option>
+                          <option>Punjab National Bank</option>
+                          <option>Other Bank</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Host Contact at Payment Step */}
+                    <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 flex items-center gap-3 text-xs">
+                      <div className="text-lg shrink-0">📞</div>
+                      <div>
+                        <p className="font-bold text-white">Need Help? Contact Host Directly</p>
+                        <p className="text-slate-400">
+                          {property.owner_name || 'Verified Host'} ·{' '}
+                          <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline font-bold">
+                            {property.phone || '+91 98200 12345'}
+                          </a>
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-500" /> 256-bit SSL encrypted · Secured by Trustora Payment Gateway
+                    </p>
+
+                    <button type="submit" disabled={paymentLoading}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white text-sm font-black shadow-lg shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70">
+                      {paymentLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Processing Payment...
+                        </>
+                      ) : (
+                        <>💳 Pay ₹{calcTotal().toLocaleString()} Now</>
+                      )}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {/* ── STEP 3: Booking Confirmed ── */}
+              {bookingStep === 3 && (
+                <div className="text-center space-y-5 py-4">
+                  {/* Animated success icon */}
+                  <div className="flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-full bg-emerald-500/10 border-4 border-emerald-500/40 flex items-center justify-center shadow-2xl shadow-emerald-500/20">
+                      <CheckCircle2 className="w-14 h-14 text-emerald-400" />
                     </div>
                   </div>
-                );
-              })()}
 
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span>Instant confirmation with 100% money-back Trustora guarantee.</span>
-              </div>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1">Payment Done ✅</p>
+                    <h2 className="text-2xl font-black text-white leading-tight">Your Booking is<br />Confirmed! 🎉</h2>
+                    <p className="text-sm text-slate-400 mt-2">{property.name}, {property.city}</p>
+                  </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setBookingModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={bookingLoading}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white text-xs font-black shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {bookingLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Confirming...
-                    </>
-                  ) : (
-                    'Confirm & Reserve Stay'
-                  )}
-                </button>
-              </div>
-            </form>
+                  {/* Booking Summary Card */}
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-left space-y-2">
+                    <div className="flex justify-between text-slate-300">
+                      <span className="text-slate-500">Booking Ref</span>
+                      <span className="font-black text-emerald-400">{confirmedBooking?.booking_reference || 'TR-CONFIRMED'}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300">
+                      <span className="text-slate-500">Check-In</span>
+                      <span className="font-bold">{checkIn}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300">
+                      <span className="text-slate-500">Check-Out</span>
+                      <span className="font-bold">{checkOut}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300">
+                      <span className="text-slate-500">Guests</span>
+                      <span className="font-bold">{guestCount}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300 border-t border-slate-800 pt-2">
+                      <span className="text-slate-500">Amount Paid</span>
+                      <span className="font-black text-emerald-400">₹{calcTotal().toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300">
+                      <span className="text-slate-500">Payment Method</span>
+                      <span className="font-bold capitalize">{paymentMethod.toUpperCase()}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300">
+                      <span className="text-slate-500">Status</span>
+                      <span className="font-black text-emerald-400">✅ Paid & Confirmed</span>
+                    </div>
+                  </div>
+
+                  {/* Host Contact */}
+                  <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 flex items-center gap-3 text-xs text-left">
+                    <div className="text-lg shrink-0">📞</div>
+                    <div>
+                      <p className="font-bold text-white">Host will reach out to you</p>
+                      <p className="text-slate-400">{property.owner_name || 'Verified Host'} · <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline">{property.phone || '+91 98200 12345'}</a></p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                    <span>Protected by Trustora's 100% money-back authenticity guarantee.</span>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button onClick={() => { setBookingModalOpen(false); setBookingStep(1); setConfirmedBooking(null); }}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer">
+                      Close
+                    </button>
+                    <button onClick={handleCloseAndNavigate}
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black transition-all cursor-pointer">
+                      View My Bookings →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+
 
       {/* Trust Report Drawer Modal */}
       <TrustReportModal

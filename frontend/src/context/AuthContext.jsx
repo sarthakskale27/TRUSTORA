@@ -73,7 +73,14 @@ export const AuthProvider = ({ children }) => {
 
   const switchPortalRole = (newRole) => {
     if (!user) return;
-    const updated = { ...user, role: newRole, is_verified_host: newRole === 'host' };
+    const updated = { ...user, role: newRole };
+    localStorage.setItem('trustora_user', JSON.stringify(updated));
+    setUser(updated);
+  };
+
+  const updateUser = (updatedFields) => {
+    if (!user) return;
+    const updated = { ...user, ...updatedFields };
     localStorage.setItem('trustora_user', JSON.stringify(updated));
     setUser(updated);
   };
@@ -83,7 +90,7 @@ export const AuthProvider = ({ children }) => {
   const demoGuestLogin = async () => login('guest@trustora.ai', 'password123', 'guest');
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, googleLogin, logout, demoLogin, demoGuestLogin, switchPortalRole }}>
+    <AuthContext.Provider value={{ user, loading, login, register, googleLogin, logout, demoLogin, demoGuestLogin, switchPortalRole, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

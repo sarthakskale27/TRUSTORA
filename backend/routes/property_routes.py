@@ -46,6 +46,12 @@ def get_property_reviews(property_id):
 @property_bp.route('', methods=['POST'])
 @token_required
 def create_property(current_user):
+    # Enforce strict host verification barrier
+    if not current_user.is_verified_host:
+        return jsonify({
+            'error': 'Host identity verification required before listing properties. Please complete your Govt ID and biometric face verification in the Trust Center.'
+        }), 403
+
     data = request.get_json() or {}
     title = data.get('title') or data.get('name', 'Luxury Villa')
     p_type = data.get('property_type', 'villa')

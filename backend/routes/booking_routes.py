@@ -73,6 +73,12 @@ def get_my_bookings(current_user):
 @booking_bp.route('', methods=['POST'])
 @token_required
 def create_booking(current_user):
+    # Enforce strict guest identity verification barrier
+    if not current_user.is_verified_host:
+        return jsonify({
+            'error': 'Traveller identity verification required before confirming reservations. Please complete quick ID verification in your profile or booking prompt.'
+        }), 403
+
     data = request.get_json() or {}
     prop_id = data.get('property_id')
     prop = Property.query.get_or_404(prop_id)

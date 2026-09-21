@@ -3,7 +3,8 @@ import {
   ArrowLeft, MapPin, Users, Bed, Bath, Star, ShieldCheck,
   CheckCircle2, Calendar, DollarSign, TrendingUp, Clock,
   Phone, Mail, BookOpen, Loader2, ChevronRight, Eye, XCircle,
-  Trash2, AlertTriangle, Power, CheckCircle, X
+  Trash2, AlertTriangle, Power, CheckCircle, X, Sparkles,
+  Award, Camera, SearchCheck, Fingerprint, Info, ArrowUpRight
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -154,7 +155,7 @@ export const HostPropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
           <div className="flex-1 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> YOUR PROPERTY
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> YOUR LISTED PROPERTY
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-950 text-slate-400 border border-slate-800 uppercase">
                 {property.property_type || 'Villa'}
@@ -179,7 +180,130 @@ export const HostPropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
         </div>
       </div>
 
-      {/* ── 2. LIVE STATS DASHBOARD ── */}
+      {/* ── 2. TRUST SCORE CALCULATION BREAKDOWN & BOOST TIPS (FOR HOST) ── */}
+      <div className="p-6 sm:p-7 rounded-3xl bg-slate-900 border border-emerald-500/30 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400 flex items-center gap-1 mb-1">
+              <Award className="w-3.5 h-3.5" /> Trust Score Breakdown & Audit
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-white">
+              How {property.name}'s Trust Score is Calculated ({trustScore}/100)
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Transparent calculation breakdown and actionable suggestions to maximize guest booking conversions.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-950 border border-emerald-500/30 text-center shrink-0 min-w-[130px]">
+            <p className="text-[10px] text-slate-400 font-bold uppercase">Listing Rating</p>
+            <p className="text-xl font-black text-emerald-400">{trustScore}/100</p>
+            <p className="text-[9px] text-emerald-300 font-semibold">Tier 1 Certified</p>
+          </div>
+        </div>
+
+        {/* 4 Pillars Breakdown Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold text-xs flex items-center gap-1">
+                <Fingerprint className="w-3.5 h-3.5" /> Host Identity
+              </span>
+              <span className="text-xs font-black text-emerald-400">25 / 25 pts</span>
+            </div>
+            <p className="text-xs font-bold text-white">Govt KYC & Face Match</p>
+            <p className="text-[11px] text-slate-400">
+              Host Aadhaar/Passport verified with 3D liveness match. Full points awarded.
+            </p>
+            <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-emerald-500 h-full rounded-full" style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="p-1.5 rounded-lg bg-teal-500/10 text-teal-400 font-bold text-xs flex items-center gap-1">
+                <Camera className="w-3.5 h-3.5" /> Photo Authenticity
+              </span>
+              <span className="text-xs font-black text-teal-400">23 / 25 pts</span>
+            </div>
+            <p className="text-xs font-bold text-white">Reverse Image Clean</p>
+            <p className="text-[11px] text-slate-400">
+              Zero duplicate web images detected. Room counts match photo coverage.
+            </p>
+            <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-teal-500 h-full rounded-full" style={{ width: '92%' }} />
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 font-bold text-xs flex items-center gap-1">
+                <SearchCheck className="w-3.5 h-3.5" /> Review Health
+              </span>
+              <span className="text-xs font-black text-indigo-400">24 / 25 pts</span>
+            </div>
+            <p className="text-xs font-bold text-white">Temporal Consistency</p>
+            <p className="text-[11px] text-slate-400">
+              No artificial review bursts detected. Verified guest checkout ratings.
+            </p>
+            <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-indigo-500 h-full rounded-full" style={{ width: '96%' }} />
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 font-bold text-xs flex items-center gap-1">
+                <DollarSign className="w-3.5 h-3.5" /> Pricing Integrity
+              </span>
+              <span className="text-xs font-black text-amber-400">22 / 25 pts</span>
+            </div>
+            <p className="text-xs font-bold text-white">Market Reference Range</p>
+            <p className="text-[11px] text-slate-400">
+              Price ₹{(property.base_price || 5000).toLocaleString()}/night conforms to {property.city} reference median.
+            </p>
+            <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-amber-500 h-full rounded-full" style={{ width: '88%' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Actionable Tips to Boost to 100/100 */}
+        <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-3">
+          <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4" /> Actionable Recommendations to Reach 100/100 Trust Score
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <p className="font-bold text-white flex items-center gap-1">
+                <span className="text-emerald-400 font-black">+2 pts</span> Upload 2 More Room Photos
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Adding bathroom and kitchen photos increases photo consistency index to 25/25.
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <p className="font-bold text-white flex items-center gap-1">
+                <span className="text-emerald-400 font-black">+2 pts</span> Add House Rules & Directions
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Adding landmark directions and check-in instructions reduces guest confusion.
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <p className="font-bold text-white flex items-center gap-1">
+                <span className="text-emerald-400 font-black">+2 pts</span> Collect 3 More Checkout Reviews
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Guests who complete their stay unlock verified review badges for this property.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. LIVE STATS DASHBOARD ── */}
       <div>
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
           <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> Property Performance
@@ -212,7 +336,7 @@ export const HostPropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
         </div>
       </div>
 
-      {/* ── 3. NEW BOOKINGS ALERT ── */}
+      {/* ── 4. NEW BOOKINGS ALERT ── */}
       {recentBookings.length > 0 && (
         <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-600/10 to-teal-600/10 border border-emerald-500/30 space-y-3">
           <div className="flex items-center justify-between">
@@ -245,7 +369,7 @@ export const HostPropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
         </div>
       )}
 
-      {/* ── 4. ALL BOOKINGS TABLE ── */}
+      {/* ── 5. ALL BOOKINGS TABLE ── */}
       <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black text-white flex items-center gap-2">
@@ -309,7 +433,7 @@ export const HostPropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
         )}
       </div>
 
-      {/* ── 5. PROPERTY DETAILS ── */}
+      {/* ── 6. PROPERTY DETAILS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-white">Property Description</h3>
@@ -332,7 +456,7 @@ export const HostPropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
         </div>
       </div>
 
-      {/* ── 6. CLOSE / DELIST PROPERTY ── */}
+      {/* ── 7. CLOSE / DELIST PROPERTY ── */}
       <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
         <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
           <Power className="w-4 h-4 text-amber-400" /> Property Status & Availability

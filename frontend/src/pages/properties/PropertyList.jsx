@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Building2, Plus, Star, MapPin, BedDouble, DollarSign, ShieldCheck,
-  ExternalLink, Trash2, Edit, Eye, XCircle, Calendar, Loader2, AlertTriangle
+  ExternalLink, Trash2, Edit, Eye, XCircle, Calendar, Loader2, AlertTriangle,
+  Fingerprint, ArrowRight, X
 } from 'lucide-react';
 import api from '../../services/api';
 import { Badge } from '../../components/common/Badge';
@@ -15,44 +16,39 @@ const FALLBACK_IMAGES = [
   'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800',
 ];
 
-export const PropertyList = ({ onSelectProperty, onAddNew }) => {
+export const PropertyList = ({ onSelectProperty, onAddNew, onNavigate }) => {
   const { success, error } = useToast();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState(null); // { prop, hasBookings, bookingCount }
   const [deleting, setDeleting] = useState(false);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [isHostVerified, setIsHostVerified] = useState(false);
 
   const { user } = useAuth();
+
+  const checkHostVerification = async () => {
+    if (user?.is_verified_host) {
+      setIsHostVerified(true);
+      return true;
+    }
+    try {
+      const res = await api.get('/trust/host/verification/status');
+      const verified = Boolean(res.data && (res.data.verified || res.data.status === 'verified'));
+      setIsHostVerified(verified);
+      return verified;
+    } catch {
+      setIsHostVerified(false);
+      return false;
+    }
+  };
+
   const fetchProperties = async () => {
     setLoading(true);
     try {
       const res = await api.get('/properties');
       const allProps = res.data.properties || [];
-      const email = (user?.email || '').toLowerCase();
-      let filtered = allProps;
-      if (email.includes('rohan') || email === 'host@trustora.ai') {
-        const rohanNames = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet'];
-        filtered = allProps.filter(p => rohanNames.includes(p.name));
-      } else if (email.includes('sarthak') || email.includes('hostboost')) {
-        const sarthakNames = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay'];
-        filtered = allProps.filter(p => sarthakNames.includes(p.name));
-        if (filtered.length === 0) filtered = allProps.filter(p => p.user_id === user?.id);
-      } else if (email.includes('vikram')) {
-        const vikramNames = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli'];
-        filtered = allProps.filter(p => vikramNames.includes(p.name));
-      } else if (email.includes('deepa')) {
-        const deepaNames = ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay'];
-        filtered = allProps.filter(p => deepaNames.includes(p.name));
-      } else if (email.includes('kavya')) {
-        const kavyaNames = ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel'];
-        filtered = allProps.filter(p => kavyaNames.includes(p.name));
-      } else if (email.includes('arun')) {
-        const arunNames = ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla'];
-        filtered = allProps.filter(p => arunNames.includes(p.name));
-      } else if (email.includes('rajesh') || email.includes('budget') || email.includes('low')) {
-        filtered = allProps.filter(p => (p.trust_score || 100) < 75);
-      }
-      setProperties(filtered);
+      setProperties(allProps);
     } catch (e) {
       error('Failed to load properties.');
     } finally {
@@ -62,7 +58,17 @@ export const PropertyList = ({ onSelectProperty, onAddNew }) => {
 
   useEffect(() => {
     fetchProperties();
+    checkHostVerification();
   }, []);
+
+  const handleAddNewAttempt = async () => {
+    const verified = await checkHostVerification();
+    if (!verified) {
+      setVerificationModalOpen(true);
+      return;
+    }
+    if (onAddNew) onAddNew();
+  };
 
   // Smart delete: check for active bookings first
   const handleDeleteClick = async (prop) => {
@@ -79,7 +85,6 @@ export const PropertyList = ({ onSelectProperty, onAddNew }) => {
         bookingCount: propBookings.length
       });
     } catch {
-      // If can't check, still show modal
       setDeleteModal({ prop, hasBookings: false, bookingCount: 0 });
     }
   };
@@ -110,7 +115,7 @@ export const PropertyList = ({ onSelectProperty, onAddNew }) => {
           </p>
         </div>
         <button
-          onClick={onAddNew}
+          onClick={handleAddNewAttempt}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add New Property Wizard
@@ -125,18 +130,33 @@ export const PropertyList = ({ onSelectProperty, onAddNew }) => {
           ))}
         </div>
       ) : properties.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
-          <Building2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-white">No properties registered yet</h3>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            Use the 6-step onboarding wizard to publish your first vacation rental or boutique hotel.
-          </p>
-          <button
-            onClick={onAddNew}
-            className="mt-5 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer"
-          >
-            Launch Wizard
-          </button>
+        <div className="text-center py-16 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 max-w-xl mx-auto space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-400">
+            <Building2 className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white">Your Property Portfolio is Empty</h3>
+            <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
+              Welcome to Trustora! As a new host, you start fresh. Before publishing your first vacation rental, resort, or boutique stay, verify your host credentials.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={handleAddNewAttempt}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> List Your First Property
+            </button>
+            {!isHostVerified && (
+              <button
+                onClick={() => onNavigate && onNavigate('host-verification')}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Fingerprint className="w-4 h-4" /> Verify Yourself First
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -241,6 +261,51 @@ export const PropertyList = ({ onSelectProperty, onAddNew }) => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ══════ HOST VERIFICATION GUARD MODAL ══════ */}
+      {verificationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn" onClick={() => setVerificationModalOpen(false)}>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Fingerprint className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">Verify Yourself First 🛡️</h3>
+                <p className="text-xs text-slate-400">Host Identity Requirement</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs space-y-2 text-slate-300">
+              <p className="font-bold text-amber-400">⚠️ Identity Verification is Required Before Listing</p>
+              <p>
+                To maintain Trustora's 100% verified standard and protect guests, you must verify your identity (Government ID + Biometric Face Match) before listing your first property.
+              </p>
+              <p className="text-slate-400 text-[11px] pt-1">
+                After completing verification, you will earn the <strong>Verified Host ✓</strong> badge and unlock full property publishing.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setVerificationModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setVerificationModalOpen(false);
+                  if (onNavigate) onNavigate('host-verification');
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Fingerprint className="w-4 h-4" /> Verify Yourself Now →
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

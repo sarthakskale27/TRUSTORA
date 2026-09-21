@@ -27,6 +27,9 @@ export const Dashboard = ({ onNavigate }) => {
       .finally(() => setLoading(false));
   }, []);
 
+  const isVerified = Boolean(user?.is_verified_host);
+  const hasProperties = (stats.total_properties || stats.properties?.length || 0) > 0;
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-fadeIn pb-12">
       {/* ── 1. PRIMARY TRUST CENTER BANNER ── */}
@@ -36,31 +39,37 @@ export const Dashboard = ({ onNavigate }) => {
             <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4" /> Trust Intelligence Center
             </span>
-            <span className="text-[9px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
-              DEMO DATA
+            <span className={`text-[9px] px-2 py-0.5 rounded font-bold border ${isVerified ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+              {isVerified ? 'VERIFIED HOST' : 'ACTION REQUIRED'}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">
-            Welcome back, {user?.name || 'Host'}
+            Welcome, {user?.name || 'Host'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-            Your Trustora portfolio is operating with a <strong>96/100 Trust Score</strong>. Host identity is verified and fraud scans are clean.
+            {isVerified 
+              ? (hasProperties 
+                  ? 'Your Trustora portfolio is operating with a 96/100 Trust Score. Host identity is verified and fraud scans are clean.'
+                  : 'Your host identity is verified! You can now list your properties and start receiving bookings.')
+              : 'Complete your government ID and face-match verification to publish your properties on Trustora.'}
           </p>
         </div>
 
         <div className="flex items-center gap-4 bg-slate-950/80 p-4 rounded-2xl border border-emerald-500/30 shrink-0">
           <div className="w-16 h-16 rounded-2xl bg-emerald-950 border-2 border-emerald-500/60 flex flex-col items-center justify-center shadow-lg">
-            <span className="text-2xl font-black text-emerald-400 leading-none">96</span>
+            <span className="text-2xl font-black text-emerald-400 leading-none">{isVerified ? '96' : '--'}</span>
             <span className="text-[9px] text-slate-400 font-bold">/ 100</span>
           </div>
           <div>
             <p className="text-xs font-extrabold text-white">Portfolio Trust Score</p>
-            <p className="text-[11px] text-emerald-300 font-semibold">Verified Host ✓ Active</p>
+            <p className={`text-[11px] font-semibold ${isVerified ? 'text-emerald-300' : 'text-amber-400'}`}>
+              {isVerified ? 'Verified Host ✓ Active' : 'Pending Verification ⚠️'}
+            </p>
             <button
-              onClick={() => onNavigate('trust-radar')}
+              onClick={() => onNavigate(isVerified ? 'trust-radar' : 'host-verification')}
               className="mt-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-all shadow flex items-center gap-1 cursor-pointer"
             >
-              Open Trust Hub <ArrowRight className="w-3 h-3" />
+              {isVerified ? 'Open Trust Hub' : 'Verify Identity Now'} <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -80,8 +89,12 @@ export const Dashboard = ({ onNavigate }) => {
               <span className="text-xs font-bold text-slate-300">Host Verification</span>
               <Fingerprint className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
             </div>
-            <p className="text-lg font-black text-emerald-400">Verified Host ✓</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Govt ID + Face-match 94.2%</p>
+            <p className={`text-lg font-black ${isVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {isVerified ? 'Verified Host ✓' : 'Action Required'}
+            </p>
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              {isVerified ? 'Govt ID + Face-match 94.2%' : 'Verify ID to list properties'}
+            </p>
           </div>
 
           <div
@@ -104,8 +117,8 @@ export const Dashboard = ({ onNavigate }) => {
               <span className="text-xs font-bold text-slate-300">Review Health</span>
               <SearchCheck className="w-4 h-4 text-teal-400 group-hover:scale-110 transition-transform" />
             </div>
-            <p className="text-lg font-black text-teal-400">82% Confidence</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Zero burst anomalies</p>
+            <p className="text-lg font-black text-teal-400">{hasProperties ? '82% Confidence' : 'No Reviews Yet'}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">{hasProperties ? 'Zero burst anomalies' : 'Clean rating profile'}</p>
           </div>
 
           <div
@@ -116,8 +129,8 @@ export const Dashboard = ({ onNavigate }) => {
               <span className="text-xs font-bold text-slate-300">Listing Quality</span>
               <Sparkles className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
             </div>
-            <p className="text-lg font-black text-amber-400">88 / 100</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">+3 pts with 1 more bathroom photo</p>
+            <p className="text-lg font-black text-amber-400">{hasProperties ? '88 / 100' : 'Ready'}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">{hasProperties ? '+3 pts with 1 more bathroom photo' : 'AI photo scanner ready'}</p>
           </div>
         </div>
       </div>

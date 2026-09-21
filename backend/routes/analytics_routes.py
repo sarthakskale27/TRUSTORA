@@ -11,49 +11,7 @@ analytics_bp = Blueprint('analytics', __name__)
 @analytics_bp.route('/revenue', methods=['GET'])
 @token_required
 def get_dashboard_stats(current_user):
-    # Fetch all properties belonging strictly to this host
-    email_lower = (current_user.email or '').lower()
-    name_lower = (current_user.name or '').lower()
-
-    is_sarthak = 'sarthak' in email_lower or 'hostboost' in email_lower or 'sarthak' in name_lower or current_user.id in (17, 18, 23, 24)
-    is_rohan   = 'rohan' in email_lower or email_lower == 'host@trustora.ai' or current_user.id == 1
-    is_vikram  = 'vikram' in email_lower
-    is_deepa   = 'deepa' in email_lower or 'restaurant' in email_lower
-    is_kavya   = 'kavya' in email_lower
-    is_arun    = 'arun' in email_lower
-    is_rajesh  = 'rajesh' in email_lower or 'budget' in email_lower or 'low' in email_lower
-
-    if is_sarthak:
-        sarthak_names = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay']
-        raw_props = Property.query.filter(Property.name.in_(sarthak_names)).order_by(Property.created_at.desc()).all()
-        if not raw_props:
-            raw_props = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
-    elif is_rohan:
-        rohan_names = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet']
-        raw_props = Property.query.filter(Property.name.in_(rohan_names)).order_by(Property.created_at.desc()).all()
-    elif is_vikram:
-        vikram_names = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli']
-        raw_props = Property.query.filter(Property.name.in_(vikram_names)).order_by(Property.created_at.desc()).all()
-    elif is_deepa:
-        deepa_names = ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay']
-        raw_props = Property.query.filter(Property.name.in_(deepa_names)).order_by(Property.created_at.desc()).all()
-    elif is_kavya:
-        kavya_names = ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel']
-        raw_props = Property.query.filter(Property.name.in_(kavya_names)).order_by(Property.created_at.desc()).all()
-    elif is_arun:
-        arun_names = ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla']
-        raw_props = Property.query.filter(Property.name.in_(arun_names)).order_by(Property.created_at.desc()).all()
-    elif is_rajesh:
-        raw_props = Property.query.filter(Property.trust_score < 75).order_by(Property.created_at.desc()).all()
-    else:
-        raw_props = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
-
-    seen = set()
-    properties = []
-    for p in raw_props:
-        if p.id not in seen:
-            seen.add(p.id)
-            properties.append(p)
+    properties = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
 
     prop_list = [
         {

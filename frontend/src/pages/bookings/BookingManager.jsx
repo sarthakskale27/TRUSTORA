@@ -101,48 +101,12 @@ export const BookingManager = () => {
         api.get('/properties')
       ]);
       const allProps = pRes.data.properties || [];
-      const email = (user?.email || '').toLowerCase();
-      let filteredProps = allProps;
-      if (email.includes('rohan') || email === 'host@trustora.ai') {
-        const rohanNames = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet'];
-        filteredProps = allProps.filter(p => rohanNames.includes(p.name));
-      } else if (email.includes('sarthak') || email.includes('hostboost')) {
-        const sarthakNames = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay'];
-        filteredProps = allProps.filter(p => sarthakNames.includes(p.name));
-        if (filteredProps.length === 0) filteredProps = allProps.filter(p => p.user_id === user?.id);
-      } else if (email.includes('vikram')) {
-        const vikramNames = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli'];
-        filteredProps = allProps.filter(p => vikramNames.includes(p.name));
-      } else if (email.includes('deepa')) {
-        const deepaNames = ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay'];
-        filteredProps = allProps.filter(p => deepaNames.includes(p.name));
-      } else if (email.includes('kavya')) {
-        const kavyaNames = ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel'];
-        filteredProps = allProps.filter(p => kavyaNames.includes(p.name));
-      } else if (email.includes('arun')) {
-        const arunNames = ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla'];
-        filteredProps = allProps.filter(p => arunNames.includes(p.name));
-      } else if (email.includes('rajesh') || email.includes('budget') || email.includes('low')) {
-        filteredProps = allProps.filter(p => (p.trust_score || 100) < 75);
-      }
-
-      const validPropIds = new Set(filteredProps.map(p => p.id));
       const allBookings = bRes.data.bookings || [];
-      const scopedBookings = allBookings.filter(b => validPropIds.has(b.property_id || b.property?.id));
-      
-      // Deduplicate
-      const seen = new Set();
-      const dedupedBookings = scopedBookings.filter(b => {
-        const key = `${b.property_id}_${b.check_in}_${b.check_out}_${b.guest_name || b.guest_id}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
 
-      setBookings(dedupedBookings.length > 0 ? dedupedBookings : allBookings.slice(0, 4));
-      setProperties(filteredProps);
-      if (filteredProps.length > 0) {
-        setNewBooking((prev) => ({ ...prev, property_id: filteredProps[0].id }));
+      setProperties(allProps);
+      setBookings(allBookings);
+      if (allProps.length > 0) {
+        setNewBooking((prev) => ({ ...prev, property_id: allProps[0].id }));
       }
     } catch (e) {
       error('Failed to load bookings.');
@@ -164,40 +128,12 @@ export const BookingManager = () => {
           api.get('/properties')
         ]);
         const allProps = pRes.data.properties || [];
-        const email = (user?.email || '').toLowerCase();
-        let filteredProps = allProps;
-        if (email.includes('rohan') || email === 'host@trustora.ai') {
-          filteredProps = allProps.filter(p => ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet'].includes(p.name));
-        } else if (email.includes('sarthak') || email.includes('hostboost')) {
-          const sarthakNames = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay'];
-          filteredProps = allProps.filter(p => sarthakNames.includes(p.name));
-          if (filteredProps.length === 0) filteredProps = allProps.filter(p => p.user_id === user?.id);
-        } else if (email.includes('vikram')) {
-          filteredProps = allProps.filter(p => ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli'].includes(p.name));
-        } else if (email.includes('deepa')) {
-          filteredProps = allProps.filter(p => ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay'].includes(p.name));
-        } else if (email.includes('kavya')) {
-          filteredProps = allProps.filter(p => ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel'].includes(p.name));
-        } else if (email.includes('arun')) {
-          filteredProps = allProps.filter(p => ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla'].includes(p.name));
-        } else if (email.includes('rajesh') || email.includes('budget') || email.includes('low')) {
-          filteredProps = allProps.filter(p => (p.trust_score || 100) < 75);
-        }
-
-        const validPropIds = new Set(filteredProps.map(p => p.id));
         const allBookings = bRes.data.bookings || [];
-        const scopedBookings = allBookings.filter(b => validPropIds.has(b.property_id || b.property?.id));
-
-        const seen = new Set();
-        const dedupedBookings = scopedBookings.filter(b => {
-          const key = `${b.property_id}_${b.check_in}_${b.check_out}_${b.guest_name || b.guest_id}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+        setProperties(allProps);
+        setBookings(allBookings);
 
         // Detect new bookings
-        const currentIds = new Set(dedupedBookings.map(b => b.id));
+        const currentIds = new Set(allBookings.map(b => b.id));
         const genuinelyNew = [...currentIds].filter(id => !prevBookingIds.current.has(id));
         if (genuinelyNew.length > 0 && prevBookingIds.current.size > 0) {
           setNewBookingCount(n => n + genuinelyNew.length);

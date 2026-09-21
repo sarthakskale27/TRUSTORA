@@ -16,48 +16,13 @@ def get_bookings(current_user):
         return get_my_bookings(current_user)
     else:
         # User is a HOST, return bookings strictly for their properties
-        email_lower = (current_user.email or '').lower()
-        name_lower = (current_user.name or '').lower()
-
-        is_sarthak = 'sarthak' in email_lower or 'hostboost' in email_lower or 'sarthak' in name_lower or current_user.id in (17, 18, 23, 24)
-        is_rohan   = 'rohan' in email_lower or email_lower == 'host@trustora.ai' or current_user.id == 1
-        is_vikram  = 'vikram' in email_lower
-        is_deepa   = 'deepa' in email_lower or 'restaurant' in email_lower
-        is_kavya   = 'kavya' in email_lower
-        is_arun    = 'arun' in email_lower
-        is_rajesh  = 'rajesh' in email_lower or 'budget' in email_lower or 'low' in email_lower
-
-        if is_sarthak:
-            sarthak_names = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay']
-            properties = Property.query.filter(Property.name.in_(sarthak_names)).all()
-            if not properties:
-                properties = Property.query.filter_by(user_id=current_user.id).all()
-        elif is_rohan:
-            rohan_names = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet']
-            properties = Property.query.filter(Property.name.in_(rohan_names)).all()
-        elif is_vikram:
-            vikram_names = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli']
-            properties = Property.query.filter(Property.name.in_(vikram_names)).all()
-        elif is_deepa:
-            deepa_names = ['Alleppey Houseboat Stay', 'Munnar Plantation Villa', 'Kumarakom Backwater Retreat', 'Nilgiris Plantation Stay']
-            properties = Property.query.filter(Property.name.in_(deepa_names)).all()
-        elif is_kavya:
-            kavya_names = ['Indiranagar Urban Studio', 'Whitefield Garden Villa', 'Marine Drive Sea View Flat', 'Bandra Boutique Hotel']
-            properties = Property.query.filter(Property.name.in_(kavya_names)).all()
-        elif is_arun:
-            arun_names = ['Ganga Riverside Cottage', 'Swarg Ashram Yoga Retreat', 'Tiger Hill Tea Estate', 'Colonial Heritage Cottage Shimla']
-            properties = Property.query.filter(Property.name.in_(arun_names)).all()
-        elif is_rajesh:
-            properties = Property.query.filter(Property.trust_score < 75).all()
-        else:
-            properties = Property.query.filter_by(user_id=current_user.id).all()
-            
+        properties = Property.query.filter_by(user_id=current_user.id).all()
         prop_ids = [p.id for p in properties]
         
-        if prop_ids:
-            query = Booking.query.filter(Booking.property_id.in_(prop_ids)).order_by(Booking.created_at.desc(), Booking.check_in.desc())
-        else:
+        if not prop_ids:
             return jsonify({'count': 0, 'bookings': []}), 200
+            
+        query = Booking.query.filter(Booking.property_id.in_(prop_ids)).order_by(Booking.created_at.desc(), Booking.check_in.desc())
     
     if limit:
         bookings = query.limit(limit).all()
@@ -81,48 +46,15 @@ def get_bookings(current_user):
 @booking_bp.route('/my-bookings', methods=['GET'])
 @token_required
 def get_my_bookings(current_user):
-    """Guest-specific bookings endpoint with auto-deduplication."""
-    # 1. Query by current_user.id and Guest ID
+    """Guest-specific bookings endpoint with auto-deduplication. Returns 0 for new accounts."""
     guest_ids = [current_user.id]
     g = Guest.query.filter_by(email=current_user.email).first()
     if g and g.id not in guest_ids:
         guest_ids.append(g.id)
 
     raw_bookings = Booking.query.filter(Booking.guest_id.in_(guest_ids)).order_by(Booking.check_in.desc()).all()
-            
-    # 2. If still empty, link starter rich trips across upcoming, current, completed, and cancelled
-    if not raw_bookings:
-        today = date.today()
-        props = Property.query.limit(4).all()
-        if props:
-            sample_configs = [
-                ('confirmed', 5, 4, 'Trustora Direct'),
-                ('checked_in', -1, 3, 'Trustora Direct'),
-                ('checked_out', -25, 5, 'Airbnb'),
-                ('cancelled', -45, 2, 'Booking.com')
-            ]
-            for idx, (stat, offset, nts, ch) in enumerate(sample_configs):
-                p = props[idx % len(props)]
-                cin = today + timedelta(days=offset)
-                cout = cin + timedelta(days=nts)
-                bk = Booking(
-                    booking_reference=f"TR-{random.randint(10000, 99999)}",
-                    property_id=p.id,
-                    guest_id=g.id if g else current_user.id,
-                    check_in=cin,
-                    check_out=cout,
-                    total_nights=nts,
-                    guest_count=2,
-                    total_amount=float((p.base_price or 4500) * nts),
-                    status=stat,
-                    payment_status='paid' if stat != 'cancelled' else 'refunded',
-                    channel=ch
-                )
-                db.session.add(bk)
-            db.session.commit()
-            raw_bookings = Booking.query.filter(Booking.guest_id.in_(guest_ids)).order_by(Booking.check_in.desc()).all()
 
-    # 3. Clean Deduplication: Exactly ONE booking per hotel per check_in date
+    # Clean Deduplication: Exactly ONE booking per hotel per check_in date
     seen = set()
     deduped = []
     for b in raw_bookings:

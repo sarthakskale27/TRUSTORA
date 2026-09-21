@@ -8,8 +8,10 @@ import {
 import api from '../../services/api';
 import { TrustReportModal } from '../trust-radar/TrustReport';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -130,8 +130,8 @@ const HostApp = () => {
       case 'neighbourhood-vibe': return <NeighbourhoodVibe onNavigate={setActiveTab} />;
 
       // 2. Host Growth Operations
-      case 'properties':         return <PropertyList onSelectProperty={setSelId} onAddNew={() => setActiveTab('onboarding')} />;
-      case 'onboarding':         return <OnboardingWizard onComplete={() => setActiveTab('properties')} />;
+      case 'properties':         return <PropertyList onSelectProperty={setSelId} onAddNew={() => setActiveTab('onboarding')} onNavigate={setActiveTab} />;
+      case 'onboarding':         return <OnboardingWizard onComplete={() => setActiveTab('properties')} onNavigate={setActiveTab} />;
       case 'ai-copywriter':      return <AICopywriter />;
       case 'photo-analyzer':     return <PhotoAnalyzer />;
       case 'pricing':            return <DynamicPricing />;

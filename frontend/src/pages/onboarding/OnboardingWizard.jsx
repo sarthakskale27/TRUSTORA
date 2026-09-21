@@ -14,12 +14,31 @@ import {
   Plus
 } from 'lucide-react';
 import api from '../../services/api';
-import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { Fingerprint } from 'lucide-react';
 
-export const OnboardingWizard = ({ onComplete }) => {
+export const OnboardingWizard = ({ onComplete, onNavigate }) => {
+  const { user } = useAuth();
   const { success, error } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [isVerified, setIsVerified] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    if (user?.is_verified_host) {
+      setIsVerified(true);
+      setCheckingAuth(false);
+      return;
+    }
+    api.get('/trust/host/verification/status')
+      .then(res => {
+        const verified = res.data && (res.data.verified || res.data.status === 'verified');
+        setIsVerified(Boolean(verified));
+      })
+      .catch(() => setIsVerified(false))
+      .finally(() => setCheckingAuth(false));
+  }, [user]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -154,6 +173,40 @@ export const OnboardingWizard = ({ onComplete }) => {
     { number: 5, title: 'Photos & Vision', icon: Camera },
     { number: 6, title: 'Launch', icon: CheckCircle2 }
   ];
+
+  if (!checkingAuth && !isVerified) {
+    return (
+      <div className="max-w-md mx-auto py-12 px-4 animate-fadeIn text-center space-y-5">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+          <Fingerprint className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-white">Verify Yourself First 🛡️</h2>
+          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+            To ensure complete guest trust and authenticity on Trustora, you must complete your Host Verification (Govt ID + Biometric Face Match) before listing your first property.
+          </p>
+        </div>
+        <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-300 text-left space-y-1">
+          <p className="font-bold">✓ Fast automated biometric verification</p>
+          <p className="text-[11px] text-slate-400">Earns your Verified Host ✓ badge and unlocks property publishing.</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => onNavigate && onNavigate('properties')}
+            className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+          >
+            Back
+          </button>
+          <button
+            onClick={() => onNavigate && onNavigate('host-verification')}
+            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <Fingerprint className="w-4 h-4" /> Verify Yourself Now →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-6">

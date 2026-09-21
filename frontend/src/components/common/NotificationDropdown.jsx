@@ -27,57 +27,45 @@ export const NotificationDropdown = ({ onNavigateTab, roleOverride }) => {
         api.get('/bookings')
           .then(res => {
             const bookings = res.data.bookings || [];
-            const recentBookings = bookings.slice(0, 4);
-            
-            const bookingNotifs = recentBookings.map((b, idx) => ({
-              id: `host-b-${b.id || idx}`,
-              type: 'booking',
-              title: 'New Reservation Confirmed',
-              message: `${b.guest_name || b.guest?.name || 'Guest'} booked ${b.property_name || 'your property'} (₹${(b.total_amount || 18000).toLocaleString()})`,
-              time: idx === 0 ? 'Just now' : `${idx * 2 + 1} hours ago`,
-              read: idx > 0,
-              icon: Calendar,
-              color: 'emerald',
-              link: 'bookings'
-            }));
-
-            const defaultHostNotifs = [
-              {
-                id: 'host-1',
-                type: 'payout',
-                title: 'Direct Payout Credited',
-                message: '₹36,000 net booking payout successfully disbursed to your verified bank account.',
-                time: '3 hours ago',
-                read: false,
-                icon: DollarSign,
-                color: 'teal',
-                link: 'analytics'
-              },
-              {
-                id: 'host-2',
-                type: 'trust',
-                title: 'Trustora Trust Milestone',
-                message: 'Your property portfolio achieved a 96/100 Trust Score with zero fraud flags.',
-                time: '1 day ago',
-                read: true,
-                icon: ShieldCheck,
-                color: 'indigo',
-                link: 'trust-radar'
-              },
-              {
-                id: 'host-3',
-                type: 'review',
-                title: '5-Star Review Received',
-                message: '"Spotless villa, seamless check-in, and lovely neighbourhood!" — Verified Guest',
-                time: '2 days ago',
-                read: true,
-                icon: Star,
-                color: 'amber',
-                link: 'review-anomaly'
-              }
-            ];
-
-            setNotifications([...bookingNotifs, ...defaultHostNotifs]);
+            if (bookings.length > 0) {
+              const bookingNotifs = recentBookings.map((b, idx) => ({
+                id: `host-b-${b.id || idx}`,
+                type: 'booking',
+                title: 'New Reservation Confirmed',
+                message: `${b.guest_name || b.guest?.name || 'Guest'} booked ${b.property_name || 'your property'} (₹${(b.total_amount || 18000).toLocaleString()})`,
+                time: idx === 0 ? 'Just now' : `${idx * 2 + 1} hours ago`,
+                read: idx > 0,
+                icon: Calendar,
+                color: 'emerald',
+                link: 'bookings'
+              }));
+              setNotifications(bookingNotifs);
+            } else {
+              setNotifications([
+                {
+                  id: 'host-welcome',
+                  type: 'welcome',
+                  title: 'Welcome to Trustora Host Hub',
+                  message: 'Verify your host identity to publish your first property listing and receive reservations.',
+                  time: 'Just now',
+                  read: false,
+                  icon: ShieldCheck,
+                  color: 'emerald',
+                  link: 'verification'
+                },
+                {
+                  id: 'host-info',
+                  type: 'protection',
+                  title: 'Trustora Host Protection Active',
+                  message: 'Zero-fraud guarantee: all reservations are pre-verified with identity and face matching.',
+                  time: 'Today',
+                  read: true,
+                  icon: Sparkles,
+                  color: 'teal',
+                  link: 'properties'
+                }
+              ]);
+            }
           })
           .catch(() => {});
       } else {
@@ -85,62 +73,48 @@ export const NotificationDropdown = ({ onNavigateTab, roleOverride }) => {
         api.get('/bookings/my-bookings')
           .then(res => {
             const myBks = res.data.bookings || [];
-            const topBk = myBks[0];
-
-            const dynamicGuest = [];
-            if (topBk) {
-              dynamicGuest.push({
-                id: `guest-b-${topBk.id || 1}`,
+            
+            if (myBks.length > 0) {
+              const dynamicGuest = myBks.slice(0, 3).map((b, idx) => ({
+                id: `guest-b-${b.id || idx}`,
                 type: 'booking',
-                title: topBk.status === 'cancelled' ? 'Booking Refund Initiated' : 'Booking Confirmed & Guaranteed',
-                message: topBk.status === 'cancelled'
-                  ? `100% refund of ₹${(topBk.total_amount || 15000).toLocaleString()} initiated for ${topBk.property_name || 'your stay'}.`
-                  : `Your reservation at ${topBk.property_name || 'Verified Luxury Stay'} is fully confirmed with Trustora protection.`,
-                time: 'Just now',
-                read: false,
-                icon: topBk.status === 'cancelled' ? AlertCircle : CheckCircle2,
-                color: topBk.status === 'cancelled' ? 'rose' : 'emerald',
+                title: b.status === 'cancelled' ? 'Booking Cancelled & Refund Initiated' : 'Booking Confirmed & Guaranteed',
+                message: b.status === 'cancelled'
+                  ? `100% refund of ₹${(b.total_amount || 15000).toLocaleString()} processed for ${b.property_name || 'your stay'}.`
+                  : `Your reservation at ${b.property_name || 'Verified Stay'} is confirmed with Trustora protection.`,
+                time: idx === 0 ? 'Just now' : `${idx * 2 + 1} hours ago`,
+                read: idx > 0,
+                icon: b.status === 'cancelled' ? AlertCircle : CheckCircle2,
+                color: b.status === 'cancelled' ? 'rose' : 'emerald',
                 link: 'my-bookings'
-              });
+              }));
+              setNotifications(dynamicGuest);
+            } else {
+              setNotifications([
+                {
+                  id: 'guest-welcome',
+                  type: 'welcome',
+                  title: 'Welcome to Trustora!',
+                  message: 'Explore 100% verified luxury stays and retreats with fraud-free booking guarantees.',
+                  time: 'Just now',
+                  read: false,
+                  icon: Sparkles,
+                  color: 'emerald',
+                  link: 'plan-trip'
+                },
+                {
+                  id: 'guest-concierge',
+                  type: 'concierge',
+                  title: '24/7 AI Concierge Assistant Ready',
+                  message: 'Ask your AI concierge for personalized recommendations, custom trip plans, and local hidden gems.',
+                  time: 'Today',
+                  read: true,
+                  icon: MessageSquare,
+                  color: 'teal',
+                  link: 'concierge-guest'
+                }
+              ]);
             }
-
-            const defaultGuestNotifs = [
-              {
-                id: 'guest-1',
-                type: 'concierge',
-                title: 'AI Concierge Assistant Ready',
-                message: 'Your 24/7 WhatsApp AI concierge is active for local recommendations, check-in instructions, and emergencies.',
-                time: '1 hour ago',
-                read: false,
-                icon: MessageSquare,
-                color: 'teal',
-                link: 'concierge-guest'
-              },
-              {
-                id: 'guest-2',
-                type: 'protection',
-                title: 'Free Cancellation Window Active',
-                message: 'You have full flexibility: cancel anytime up to 2 days before check-in for a 100% instant refund.',
-                time: '5 hours ago',
-                read: true,
-                icon: ShieldCheck,
-                color: 'indigo',
-                link: 'my-bookings'
-              },
-              {
-                id: 'guest-3',
-                type: 'offer',
-                title: 'Trustora Discovery Verified Stays',
-                message: 'New verified coastal & mountain sanctuaries added with 95+ Trust Scores.',
-                time: '1 day ago',
-                read: true,
-                icon: Sparkles,
-                color: 'amber',
-                link: 'plan-trip'
-              }
-            ];
-
-            setNotifications([...dynamicGuest, ...defaultGuestNotifs]);
           })
           .catch(() => {});
       }

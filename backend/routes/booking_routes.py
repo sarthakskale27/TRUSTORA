@@ -55,7 +55,7 @@ def get_bookings(current_user):
         prop_ids = [p.id for p in properties]
         
         if prop_ids:
-            query = Booking.query.filter(Booking.property_id.in_(prop_ids)).order_by(Booking.check_in.desc())
+            query = Booking.query.filter(Booking.property_id.in_(prop_ids)).order_by(Booking.created_at.desc(), Booking.check_in.desc())
         else:
             return jsonify({'count': 0, 'bookings': []}), 200
     

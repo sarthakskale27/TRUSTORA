@@ -28,7 +28,7 @@ export const NotificationDropdown = ({ onNavigateTab, roleOverride }) => {
           .then(res => {
             const bookings = res.data.bookings || [];
             if (bookings.length > 0) {
-              const bookingNotifs = recentBookings.map((b, idx) => ({
+              const bookingNotifs = bookings.slice(0, 5).map((b, idx) => ({
                 id: `host-b-${b.id || idx}`,
                 type: 'booking',
                 title: 'New Reservation Confirmed',
@@ -41,41 +41,17 @@ export const NotificationDropdown = ({ onNavigateTab, roleOverride }) => {
               }));
               setNotifications(bookingNotifs);
             } else {
-              setNotifications([
-                {
-                  id: 'host-welcome',
-                  type: 'welcome',
-                  title: 'Welcome to Trustora Host Hub',
-                  message: 'Verify your host identity to publish your first property listing and receive reservations.',
-                  time: 'Just now',
-                  read: false,
-                  icon: ShieldCheck,
-                  color: 'emerald',
-                  link: 'verification'
-                },
-                {
-                  id: 'host-info',
-                  type: 'protection',
-                  title: 'Trustora Host Protection Active',
-                  message: 'Zero-fraud guarantee: all reservations are pre-verified with identity and face matching.',
-                  time: 'Today',
-                  read: true,
-                  icon: Sparkles,
-                  color: 'teal',
-                  link: 'properties'
-                }
-              ]);
+              setNotifications([]);
             }
           })
-          .catch(() => {});
+          .catch(() => setNotifications([]));
       } else {
         // Guest notifications
         api.get('/bookings/my-bookings')
           .then(res => {
             const myBks = res.data.bookings || [];
-            
             if (myBks.length > 0) {
-              const dynamicGuest = myBks.slice(0, 3).map((b, idx) => ({
+              const dynamicGuest = myBks.slice(0, 5).map((b, idx) => ({
                 id: `guest-b-${b.id || idx}`,
                 type: 'booking',
                 title: b.status === 'cancelled' ? 'Booking Cancelled & Refund Initiated' : 'Booking Confirmed & Guaranteed',
@@ -90,33 +66,10 @@ export const NotificationDropdown = ({ onNavigateTab, roleOverride }) => {
               }));
               setNotifications(dynamicGuest);
             } else {
-              setNotifications([
-                {
-                  id: 'guest-welcome',
-                  type: 'welcome',
-                  title: 'Welcome to Trustora!',
-                  message: 'Explore 100% verified luxury stays and retreats with fraud-free booking guarantees.',
-                  time: 'Just now',
-                  read: false,
-                  icon: Sparkles,
-                  color: 'emerald',
-                  link: 'plan-trip'
-                },
-                {
-                  id: 'guest-concierge',
-                  type: 'concierge',
-                  title: '24/7 AI Concierge Assistant Ready',
-                  message: 'Ask your AI concierge for personalized recommendations, custom trip plans, and local hidden gems.',
-                  time: 'Today',
-                  read: true,
-                  icon: MessageSquare,
-                  color: 'teal',
-                  link: 'concierge-guest'
-                }
-              ]);
+              setNotifications([]);
             }
           })
-          .catch(() => {});
+          .catch(() => setNotifications([]));
       }
     };
 

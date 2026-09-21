@@ -46,11 +46,13 @@ def get_bookings(current_user):
 @booking_bp.route('/my-bookings', methods=['GET'])
 @token_required
 def get_my_bookings(current_user):
-    """Guest-specific bookings endpoint with auto-deduplication. Returns 0 for new accounts."""
-    guest_ids = [current_user.id]
-    g = Guest.query.filter_by(email=current_user.email).first()
-    if g and g.id not in guest_ids:
-        guest_ids.append(g.id)
+    """Guest-specific bookings endpoint. Strictly queries by user's email to prevent ID collisions."""
+    user_email = (current_user.email or '').strip().lower()
+    guests = Guest.query.filter(Guest.email.ilike(user_email)).all()
+    guest_ids = [g.id for g in guests]
+
+    if not guest_ids:
+        return jsonify({'count': 0, 'bookings': []}), 200
 
     raw_bookings = Booking.query.filter(Booking.guest_id.in_(guest_ids)).order_by(Booking.check_in.desc()).all()
 

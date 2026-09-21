@@ -68,12 +68,7 @@ export const MyBookings = () => {
     setLoading(true);
     api.get('/bookings/my-bookings')
       .then(r => setBookings(processBookings(r.data.bookings || [])))
-      .catch(() => {
-        api.get('/bookings?limit=50')
-          .then(r => setBookings(processBookings(r.data.bookings || [])))
-          .catch(() => {})
-          .finally(() => setLoading(false));
-      })
+      .catch(() => setBookings([]))
       .finally(() => setLoading(false));
   };
 

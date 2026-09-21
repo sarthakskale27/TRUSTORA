@@ -461,8 +461,8 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
                         <Users className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="font-bold text-white">Host Contact</p>
-                        <p className="text-slate-400">{property.owner_name || 'Verified Host'} · <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline">{property.phone || '+91 98200 12345'}</a></p>
+                        <p className="font-bold text-white">Property Concierge Support</p>
+                        <p className="text-slate-400">Trustora Verified Host · <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline">{property.phone || '+91 98200 12345'}</a></p>
                       </div>
                     </div>
 
@@ -592,9 +592,9 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
                     <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 flex items-center gap-3 text-xs">
                       <div className="text-lg shrink-0">📞</div>
                       <div>
-                        <p className="font-bold text-white">Need Help? Contact Host Directly</p>
+                        <p className="font-bold text-white">Need Help? Contact Property Concierge</p>
                         <p className="text-slate-400">
-                          {property.owner_name || 'Verified Host'} ·{' '}
+                          Trustora Verified Concierge ·{' '}
                           <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline font-bold">
                             {property.phone || '+91 98200 12345'}
                           </a>
@@ -673,8 +673,8 @@ export const PropertyDetail = ({ propertyId, onBack, onNavigateTab }) => {
                   <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 flex items-center gap-3 text-xs text-left">
                     <div className="text-lg shrink-0">📞</div>
                     <div>
-                      <p className="font-bold text-white">Host will reach out to you</p>
-                      <p className="text-slate-400">{property.owner_name || 'Verified Host'} · <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline">{property.phone || '+91 98200 12345'}</a></p>
+                      <p className="font-bold text-white">Resort Concierge Contact</p>
+                      <p className="text-slate-400">Trustora Verified Team · <a href={`tel:${property.phone || '+91 9820012345'}`} className="text-emerald-400 underline">{property.phone || '+91 98200 12345'}</a></p>
                     </div>
                   </div>
 

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import {
   Compass, MapPin, Heart, BookOpen, Star, MessageSquare,
-  User, ShieldCheck, Scale, X, LogOut, Sun, Moon, Search, Building2
+  User, ShieldCheck, Scale, X, LogOut, Search
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeToggle } from '../common/ThemeToggle';
+import { NotificationDropdown } from '../common/NotificationDropdown';
 
 export const GuestLayout = ({ children, activeTab, setActiveTab }) => {
-  const { user, logout, switchPortalRole } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const { isDark } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = [
@@ -24,7 +26,7 @@ export const GuestLayout = ({ children, activeTab, setActiveTab }) => {
   ];
 
   return (
-    <div className={`min-h-screen flex ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen flex ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" />
@@ -90,7 +92,7 @@ export const GuestLayout = ({ children, activeTab, setActiveTab }) => {
                 <p className="text-[10px] text-emerald-400">Verified Traveller</p>
               </div>
             </div>
-            <button onClick={logout} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 transition-colors" title="Logout">
+            <button onClick={logout} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 transition-colors cursor-pointer" title="Logout">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -99,24 +101,35 @@ export const GuestLayout = ({ children, activeTab, setActiveTab }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="h-16 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-950/80 backdrop-blur-md shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800">
-            ☰
-          </button>
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="text-xs text-slate-400">Tagline:</span>
-            <span className="text-xs text-emerald-400 font-bold italic">
-              "Don't just book what looks good. Book what you can trust."
-            </span>
-          </div>
+        <header className={`h-16 border-b px-4 sm:px-6 flex items-center justify-between backdrop-blur-md shrink-0 transition-colors duration-200 ${
+          isDark ? 'border-slate-800/80 bg-slate-950/80' : 'border-slate-200 bg-white/90'
+        }`}>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-extrabold">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800">
+              ☰
+            </button>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Tagline:</span>
+              <span className="text-xs text-emerald-500 font-bold italic">
+                "Don't just book what looks good. Book what you can trust."
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Polished Theme Toggle */}
+            <ThemeToggle />
+
+            {/* Dynamic Guest Notifications */}
+            <NotificationDropdown onNavigateTab={setActiveTab} roleOverride="guest" />
+
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-extrabold hidden sm:inline-flex items-center gap-1">
               🛡️ Trust Protected
             </span>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-950">
+        <main className={`flex-1 overflow-y-auto p-4 sm:p-6 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
           {children}
         </main>
       </div>

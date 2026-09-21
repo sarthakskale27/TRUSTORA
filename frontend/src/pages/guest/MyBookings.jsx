@@ -516,8 +516,8 @@ export const MyBookings = () => {
                   <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 flex items-center gap-3 text-xs">
                     <Phone className="w-5 h-5 text-indigo-400 shrink-0" />
                     <div>
-                      <p className="font-bold text-white">Property Host Contact</p>
-                      <p className="text-slate-400">{prop.owner_name || 'Verified Host'} · <a href="tel:+919820012345" className="text-emerald-400 underline">+91 98200 12345</a></p>
+                      <p className="font-bold text-white">Property Concierge Support</p>
+                      <p className="text-slate-400">Trustora Verified Resort Concierge · <a href="tel:+919820012345" className="text-emerald-400 underline">+91 98200 12345</a></p>
                     </div>
                   </div>
 

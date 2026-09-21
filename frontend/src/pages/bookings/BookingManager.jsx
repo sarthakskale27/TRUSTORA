@@ -107,7 +107,9 @@ export const BookingManager = () => {
         const rohanNames = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet'];
         filteredProps = allProps.filter(p => rohanNames.includes(p.name));
       } else if (email.includes('sarthak') || email.includes('hostboost')) {
-        filteredProps = allProps.filter(p => (p.name || '').includes('Sarthak'));
+        const sarthakNames = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay'];
+        filteredProps = allProps.filter(p => sarthakNames.includes(p.name));
+        if (filteredProps.length === 0) filteredProps = allProps.filter(p => p.user_id === user?.id);
       } else if (email.includes('vikram')) {
         const vikramNames = ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli'];
         filteredProps = allProps.filter(p => vikramNames.includes(p.name));
@@ -167,7 +169,9 @@ export const BookingManager = () => {
         if (email.includes('rohan') || email === 'host@trustora.ai') {
           filteredProps = allProps.filter(p => ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet'].includes(p.name));
         } else if (email.includes('sarthak') || email.includes('hostboost')) {
-          filteredProps = allProps.filter(p => (p.name || '').includes('Sarthak'));
+          const sarthakNames = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay'];
+          filteredProps = allProps.filter(p => sarthakNames.includes(p.name));
+          if (filteredProps.length === 0) filteredProps = allProps.filter(p => p.user_id === user?.id);
         } else if (email.includes('vikram')) {
           filteredProps = allProps.filter(p => ['Amber Heritage Haveli', 'Pink City Boutique Inn', 'Royal Rambagh Palace Suite', 'Fateh Sagar Rooftop Haveli'].includes(p.name));
         } else if (email.includes('deepa')) {

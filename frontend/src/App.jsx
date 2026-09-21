@@ -13,6 +13,7 @@ import { Layout }                from './components/layout/Layout';
 import { Dashboard }             from './pages/dashboard/Dashboard';
 import { PropertyList }          from './pages/properties/PropertyList';
 import { PropertyDetail }        from './pages/properties/PropertyDetail';
+import { HostPropertyDetail }    from './pages/properties/HostPropertyDetail';
 import { TrustoraRadar }         from './pages/trust-radar/TrustoraRadar';
 import { HostVerification }      from './pages/trust-radar/HostVerification';
 import { FraudRadar }            from './pages/trust-radar/FraudRadar';
@@ -111,7 +112,7 @@ const HostApp = () => {
   const renderView = () => {
     if (selectedPropertyId && activeTab === 'properties') {
       return (
-        <PropertyDetail
+        <HostPropertyDetail
           propertyId={selectedPropertyId}
           onBack={() => setSelId(null)}
           onNavigateTab={(tab) => { setSelId(null); setActiveTab(tab); }}

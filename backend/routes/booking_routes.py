@@ -28,7 +28,10 @@ def get_bookings(current_user):
         is_rajesh  = 'rajesh' in email_lower or 'budget' in email_lower or 'low' in email_lower
 
         if is_sarthak:
-            properties = Property.query.filter(Property.name.ilike('%Sarthak%')).all()
+            sarthak_names = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay']
+            properties = Property.query.filter(Property.name.in_(sarthak_names)).all()
+            if not properties:
+                properties = Property.query.filter_by(user_id=current_user.id).all()
         elif is_rohan:
             rohan_names = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet']
             properties = Property.query.filter(Property.name.in_(rohan_names)).all()

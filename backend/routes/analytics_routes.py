@@ -24,7 +24,10 @@ def get_dashboard_stats(current_user):
     is_rajesh  = 'rajesh' in email_lower or 'budget' in email_lower or 'low' in email_lower
 
     if is_sarthak:
-        raw_props = Property.query.filter(Property.name.ilike('%Sarthak%')).order_by(Property.created_at.desc()).all()
+        sarthak_names = ['Pawna Lakeview Infinity Villa', 'Koregaon Park Garden Sanctuary', 'Solang Valley Homestay']
+        raw_props = Property.query.filter(Property.name.in_(sarthak_names)).order_by(Property.created_at.desc()).all()
+        if not raw_props:
+            raw_props = Property.query.filter_by(user_id=current_user.id).order_by(Property.created_at.desc()).all()
     elif is_rohan:
         rohan_names = ['Azure Beach Villa', 'Sunset Guesthouse Goa', 'Palolem Palm Resort', 'Himalayan Snow Chalet']
         raw_props = Property.query.filter(Property.name.in_(rohan_names)).order_by(Property.created_at.desc()).all()

@@ -7,6 +7,7 @@ import {
   Fingerprint, FileCheck, Eye, Compass
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
 
 const CSS = `
   @keyframes floatCard1 {
@@ -192,14 +193,8 @@ export const LandingPage = ({ onGuestLogin, onHostLogin, onRegister }) => {
             <a href="#how-it-works" className={t.navLink + ' transition-colors'}>Trust Intelligence Flow</a>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className={'p-2 rounded-xl border ' + t.border + ' ' + t.navLink + ' transition-all hover:scale-110 cursor-pointer'}
-              title={isDark ? 'Switch to Morning Mode' : 'Switch to Night Mode'}
-            >
-              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-emerald-600" />}
-            </button>
+          <div className="flex items-center gap-2.5">
+            <ThemeToggle />
 
             <button
               onClick={onGuestLogin}

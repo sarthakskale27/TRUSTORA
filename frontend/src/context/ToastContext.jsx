@@ -24,10 +24,10 @@ export const ToastProvider = ({ children }) => {
   const success = (msg, dur) => addToast(msg, 'success', dur);
   const error = (msg, dur) => addToast(msg, 'error', dur);
   const info = (msg, dur) => addToast(msg, 'info', dur);
-  const warning = (msg, dur) => addToast(msg, 'warning', dur);
+  const showToast = (msg, type = 'info', dur) => addToast(msg, type, dur);
 
   return (
-    <ToastContext.Provider value={{ addToast, success, error, info, warning }}>
+    <ToastContext.Provider value={{ addToast, showToast, success, error, info, warning }}>
       {children}
       <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-md w-full pointer-events-none">
         {toasts.map((toast) => (

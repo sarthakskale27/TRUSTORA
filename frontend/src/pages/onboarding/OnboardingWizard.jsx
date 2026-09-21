@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   MapPin,
@@ -11,11 +11,12 @@ import {
   DollarSign,
   Users,
   ShieldCheck,
-  Plus
+  Plus,
+  Fingerprint
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { Fingerprint } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 export const OnboardingWizard = ({ onComplete, onNavigate }) => {
   const { user } = useAuth();

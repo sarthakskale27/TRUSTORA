@@ -574,3 +574,36 @@ class ListingReport(db.Model):
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class ConciergeConfig(db.Model):
+    """Host automated message and AI Concierge customization."""
+    __tablename__ = 'concierge_configs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('properties.id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
+    welcome_message = db.Column(db.Text, nullable=True)
+    wifi_ssid = db.Column(db.String(100), nullable=True)
+    wifi_password = db.Column(db.String(100), nullable=True)
+    door_lock_code = db.Column(db.String(50), nullable=True)
+    checkout_instructions = db.Column(db.Text, nullable=True)
+    local_recommendations = db.Column(db.Text, nullable=True)
+    emergency_contact = db.Column(db.String(100), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'property_id': self.property_id,
+            'welcome_message': self.welcome_message,
+            'wifi_ssid': self.wifi_ssid,
+            'wifi_password': self.wifi_password,
+            'door_lock_code': self.door_lock_code,
+            'checkout_instructions': self.checkout_instructions,
+            'local_recommendations': self.local_recommendations,
+            'emergency_contact': self.emergency_contact,
+            'is_active': self.is_active
+        }
+

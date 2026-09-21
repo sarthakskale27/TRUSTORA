@@ -97,17 +97,19 @@ def login():
 
     user = User.query.filter_by(email=email).first()
     
-    # If user exists, sync role if specified from portal
+    # If user exists, sync role if specified from portal and ensure demo host verification
     if user:
         if role and role in ('host', 'guest') and role != user.role:
             user.role = role
-            db.session.commit()
+        if email in ('host@trustora.ai', 'rohan.host@trustora.ai', 'sarthakskale27@gmail.com', 'vikram.host@trustora.ai', 'deepa.host@trustora.ai', 'kavya.host@trustora.ai', 'arun.host@trustora.ai', 'rajesh.host@trustora.ai'):
+            user.is_verified_host = True
+        db.session.commit()
     else:
         # Universal fallback: if user does not exist yet, auto-create on demand!
         name = email.split('@')[0].replace('.', ' ').title()
         role_guess = 'host' if 'host' in email else ('guest' if 'guest' in email or 'priya' in email else role)
         pw_hash = bcrypt.generate_password_hash(password or 'password123').decode('utf-8')
-        is_demo_host = email in ('host@trustora.ai', 'vikram.host@trustora.ai', 'deepa.host@trustora.ai', 'kavya.host@trustora.ai', 'arun.host@trustora.ai')
+        is_demo_host = email in ('host@trustora.ai', 'rohan.host@trustora.ai', 'sarthakskale27@gmail.com', 'vikram.host@trustora.ai', 'deepa.host@trustora.ai', 'kavya.host@trustora.ai', 'arun.host@trustora.ai', 'rajesh.host@trustora.ai')
         user = User(
             name=name,
             email=email,

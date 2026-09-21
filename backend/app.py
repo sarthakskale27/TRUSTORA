@@ -102,7 +102,8 @@ def create_app(config_class=Config):
             db.create_all()
             if User.query.count() == 0:
                 seed_database(app)
-            print("[Trustora AI] Database connected and initialized successfully!")
+            rebalance_host_properties(app)
+            print("[Trustora AI] Database connected, portfolios rebalanced and initialized successfully!")
         except Exception as e:
             print(f"[Trustora AI Warning] Remote DB init warning (falling back if needed): {e}")
 
